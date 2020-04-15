@@ -20,6 +20,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
     onMouseOver(): void;
     onMouseOut(): void;
     onBrushEnd(): void;
+    isOutOfChart(): boolean;
     zoomOut(): void;
     get rectWidth(): number;
     getBarHeight(value: number): number;
