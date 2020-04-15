@@ -7,12 +7,12 @@ import { ChartwerkBase, TimeSerie, Options } from '@chartwerk/base';
 import * as d3 from 'd3';
 
 export class ChartwerkBarChart extends ChartwerkBase {
+    _visibleSeries: TimeSerie[];
     constructor(el: HTMLElement, _series?: TimeSerie[], _options?: Options);
     _renderMetrics(): void;
     _renderNoDataPointsMessage(): void;
     _renderMetric(datapoints: number[][], options: {
         color: string;
-        confidence: number;
     }, idx: number): void;
     _renderCrosshair(): void;
     _useBrush(): void;
