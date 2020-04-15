@@ -5,22 +5,24 @@ import * as _ from 'lodash';
 
 
 export class ChartwerkBarChart extends ChartwerkBase {
+  _visibleSeries = this._series;
   constructor(el: HTMLElement, _series: TimeSerie[] = [], _options: Options = {}) {
     super(d3, el, _series, _options);
   }
 
   // TODO: private, type for timeseries
   _renderMetrics(): void {
-    if(this._series.length > 0) {
-      for(const idx in this._series) {
-        if(this._series[idx].visible === false) {
-          continue;
-        }
-        // @ts-ignore
-        const confidence = this._series[idx].confidence || 0;
+    for(const i in this._series) {
+      // @ts-ignore
+      this._series[i].color = this._options.colors[i];
+    }
+    this._visibleSeries = this._series.filter(serie => serie.visible !== false);
+    if(this._visibleSeries.length > 0) {
+      for(const idx in this._visibleSeries) {
         this._renderMetric(
-          this._series[idx].datapoints,
-          { color: this._options.colors[idx], confidence },
+          this._visibleSeries[idx].datapoints,
+          // @ts-ignore
+          { color: this._visibleSeries[idx].color },
           Number(idx)
         );
       }
@@ -42,7 +44,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .text('No data points');
   }
 
-  _renderMetric(datapoints: number[][], options: { color: string, confidence: number }, idx: number): void {
+  _renderMetric(datapoints: number[][], options: { color: string }, idx: number): void {
     this._chartContainer.selectAll('bar')
       .data(datapoints)
       .enter().append('rect')
@@ -124,6 +126,9 @@ export class ChartwerkBarChart extends ChartwerkBase {
 
     const series: any[] = [];
     for(let i = 0; i < this._series.length; i++) {
+      if(this._series[i].visible === false) {
+        continue;
+      }
       const y = this.yScale(this._series[i].datapoints[idx][0]);
       const x = this.xScale(this._series[i].datapoints[idx][1]);
 
@@ -204,7 +209,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
     const startTimestamp = _.first(this._series[0].datapoints)[1];
     const interval = this._options.timeInterval * 60 * 1000;
     const width = this.xScale(new Date(startTimestamp + interval)) / 2;
-    return width / this._series.length;
+    return width / this._visibleSeries.length;
   }
 
   getBarHeight(value: number): number {
