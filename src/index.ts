@@ -49,13 +49,10 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .attr('class', 'bar-rect')
       .style('fill', options.color)
       .attr('x', (d: [number, number]) => {
-        return this.xScale(new Date(d[1])) + idx * this.rectWidth
+        return this.xScale(new Date(d[1])) + idx * this.rectWidth;
       })
       .attr('y', (d: [number, number]) => {
-        if(d[0] < 0) {
-          return this.height / 2;
-        }
-        return this.yScale(d[0]);
+        return this.yScale(Math.max(d[0],0));
       })
       .attr('width', this.rectWidth)
       .attr('height', (d: [number, number]) => this.getBarHeight(d[0]));
@@ -103,12 +100,15 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .on('mouseout', this.onMouseOut.bind(this))
       .on('mousemove', this.onMouseMove.bind(this))
       .on('dblclick', this.zoomOut.bind(this));
-
   }
 
   onMouseMove(): void {
-    const eventX = this._d3.mouse(this._chartContainer.node())[0];
-
+    const event = this._d3.mouse(this._chartContainer.node());
+    const eventX = event[0];
+    if(this.isOutOfChart() === true) {
+      this._crosshair.style('display', 'none');
+      return;
+    }
     this._crosshair.select('#crosshair-line-x')
       .attr('y1', 0).attr('x1', eventX)
       .attr('y2', this.yScale(this.minValue)).attr('x2', eventX);
@@ -120,13 +120,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
     const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
     const mouseDate = this.xTimeScale.invert(eventX).getTime();
 
-    let idx = bisectDate(this._series[0].datapoints, mouseDate);
-    if(
-      Math.abs(mouseDate - this._series[0].datapoints[idx - 1][1]) <
-      Math.abs(mouseDate - this._series[0].datapoints[idx][1])
-    ) {
-      idx -= 1;
-    }
+    let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
 
     const series: any[] = [];
     for(let i = 0; i < this._series.length; i++) {
@@ -178,7 +172,23 @@ export class ChartwerkBarChart extends ChartwerkBase {
     }
   }
 
+  isOutOfChart(): boolean {
+    const event = this._d3.mouse(this._chartContainer.node());
+    const eventX = event[0];
+    const eventY = event[1];
+    if(
+      eventY > this.height || eventY < 0 ||
+      eventX > this.width || eventX < 0
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   zoomOut(): void {
+    if(this.isOutOfChart() === true) {
+      return;
+    }
     const midTimestamp = this.xTimeScale.invert(this.width / 2).getTime();
     if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.zoomOut !== undefined) {
       this._options.eventsCallbacks.zoomOut(midTimestamp);
@@ -192,39 +202,28 @@ export class ChartwerkBarChart extends ChartwerkBase {
       return 20;
     }
     const startTimestamp = _.first(this._series[0].datapoints)[1];
-    const interval = this._options.timeInterval * 60 * 1000
+    const interval = this._options.timeInterval * 60 * 1000;
     const width = this.xScale(new Date(startTimestamp + interval)) / 2;
     return width / this._series.length;
   }
 
   getBarHeight(value: number): number {
-    if(this.minValue === undefined || this.minValue >= 0) {
-      return this.height - this.yScale(value);
-    }
-    if(value < 0) {
-      return this.yScale(value) - this.height / 2;
-    }
-    return this.height / 2 - this.yScale(value);
+    // TODO: Property 'sign' does not exist on type 'Math'
+    // @ts-ignore
+    return Math.sign(value) * (this.yScale(0) - this.yScale(value));
   }
 
   get yScale(): d3.ScaleLinear<number, number> {
-    if (
+    if(
       this.minValue === undefined ||
       this.maxValue === undefined
     ) {
       return this._d3.scaleLinear()
-        // TODO: why [100, 0]?
-        .domain([100, 0])
-        .range([0, this.height]);
-    }
-    if(this.minValue < 0 ) {
-      const val = Math.max(Math.abs(this.maxValue), Math.abs(this.minValue))
-      return this._d3.scaleLinear()
-        .domain([val, -val])
+        .domain([1, 0])
         .range([0, this.height]);
     }
     return this._d3.scaleLinear()
-      .domain([this.maxValue, this.minValue])
+      .domain([Math.max(this.maxValue, 0), Math.min(this.minValue, 0)])
       .range([0, this.height]);
   }
 }
