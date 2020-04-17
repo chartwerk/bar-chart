@@ -5,7 +5,6 @@ import * as _ from 'lodash';
 
 
 export class ChartwerkBarChart extends ChartwerkBase {
-  _visibleSeries = this._series;
   constructor(el: HTMLElement, _series: TimeSerie[] = [], _options: Options = {}) {
     super(d3, el, _series, _options);
   }
@@ -16,13 +15,12 @@ export class ChartwerkBarChart extends ChartwerkBase {
       // @ts-ignore
       this._series[i].color = this._options.colors[i];
     }
-    this._visibleSeries = this._series.filter(serie => serie.visible !== false);
-    if(this._visibleSeries.length > 0) {
-      for(const idx in this._visibleSeries) {
+    if(this.visibleSeries.length > 0) {
+      for(const idx in this.visibleSeries) {
         this._renderMetric(
-          this._visibleSeries[idx].datapoints,
+          this.visibleSeries[idx].datapoints,
           // @ts-ignore
-          { color: this._visibleSeries[idx].color },
+          { color: this.visibleSeries[idx].color },
           Number(idx)
         );
       }
@@ -113,7 +111,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
     }
     this._crosshair.select('#crosshair-line-x')
       .attr('y1', 0).attr('x1', eventX)
-      .attr('y2', this.yScale(this.minValue)).attr('x2', eventX);
+      .attr('y2', this.height).attr('x2', eventX);
 
     if(this._series === undefined || this._series.length === 0) {
       return;
@@ -177,19 +175,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
     }
   }
 
-  isOutOfChart(): boolean {
-    const event = this._d3.mouse(this._chartContainer.node());
-    const eventX = event[0];
-    const eventY = event[1];
-    if(
-      eventY > this.height || eventY < 0 ||
-      eventX > this.width || eventX < 0
-    ) {
-      return true;
-    }
-    return false;
-  }
-
   zoomOut(): void {
     if(this.isOutOfChart() === true) {
       return;
@@ -209,7 +194,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
     const startTimestamp = _.first(this._series[0].datapoints)[1];
     const interval = this._options.timeInterval * 60 * 1000;
     const width = this.xScale(new Date(startTimestamp + interval)) / 2;
-    return width / this._visibleSeries.length;
+    return width / this.visibleSeries.length;
   }
 
   getBarHeight(value: number): number {
