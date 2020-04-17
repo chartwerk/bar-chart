@@ -7,7 +7,6 @@ import { ChartwerkBase, TimeSerie, Options } from '@chartwerk/base';
 import * as d3 from 'd3';
 
 export class ChartwerkBarChart extends ChartwerkBase {
-    _visibleSeries: TimeSerie[];
     constructor(el: HTMLElement, _series?: TimeSerie[], _options?: Options);
     _renderMetrics(): void;
     _renderNoDataPointsMessage(): void;
@@ -20,7 +19,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
     onMouseOver(): void;
     onMouseOut(): void;
     onBrushEnd(): void;
-    isOutOfChart(): boolean;
     zoomOut(): void;
     get rectWidth(): number;
     getBarHeight(value: number): number;
