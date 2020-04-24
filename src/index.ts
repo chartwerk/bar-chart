@@ -27,19 +27,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
     } else {
       this._renderNoDataPointsMessage();
     }
-    this._renderCrosshair();
-    this._useBrush();
-  }
-
-  _renderNoDataPointsMessage(): void {
-    this._chartContainer.append('text')
-      .attr('class', 'alert-text')
-      .attr('x', this.width / 2)
-      .attr('y', this.height / 2)
-      .style('text-anchor', 'middle')
-      .style('font-size', '14px')
-      .style('fill', 'currentColor')
-      .text('No data points');
   }
 
   _renderMetric(datapoints: number[][], options: { color: string }, idx: number): void {
@@ -63,43 +50,17 @@ export class ChartwerkBarChart extends ChartwerkBase {
     }).attr('display', 'none');
   }
 
-  _renderCrosshair(): void {
-    this._crosshair = this._chartContainer.append('g')
-      .style('display', 'none');
+  public renderSharedCrosshair(timestamp: number): void {
+    this._crosshair.style('display', null);
 
-    this._crosshair.append('line')
-      .attr('class', 'crosshair-line')
-      .attr('id', 'crosshair-line-x')
-      .attr('fill', 'none')
-      .attr('stroke', 'red')
-      .attr('stroke-width', '0.5px');
-
-    this._chartContainer.append('rect')
-      .style('fill', 'none')
-      .style('stroke', 'none')
-      .style('pointer-events', 'all')
-      .style('cursor', 'crosshair')
-      .attr('width', this.width)
-      .attr('height', this.height);
+    const x = this.timestampScale(timestamp);
+    this._crosshair.select('#crosshair-line-x')
+      .attr('y1', 0).attr('x1', x)
+      .attr('y2', this.height).attr('x2', x);
   }
 
-  // TODO: move brush to base
-  _useBrush(): void {
-    this._brush = this._d3.brushX()
-      .extent([
-        [0, 0],
-        [this.width, this.height]
-      ])
-      .handleSize(20)
-      .filter(() => !this._d3.event.shiftKey)
-      .on('end', this.onBrushEnd.bind(this))
-
-    this._chartContainer
-      .call(this._brush)
-      .on('mouseover', this.onMouseOver.bind(this))
-      .on('mouseout', this.onMouseOut.bind(this))
-      .on('mousemove', this.onMouseMove.bind(this))
-      .on('dblclick', this.zoomOut.bind(this));
+  public hideSharedCrosshair(): void {
+    this._crosshair.style('display', 'none');
   }
 
   onMouseMove(): void {
@@ -118,7 +79,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
     }
 
     const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
-    const mouseDate = this.xTimeScale.invert(eventX).getTime();
+    const mouseDate = this.xScale.invert(eventX).getTime();
 
     let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
 
@@ -127,25 +88,21 @@ export class ChartwerkBarChart extends ChartwerkBase {
       if(this._series[i].visible === false) {
         continue;
       }
-      const y = this.yScale(this._series[i].datapoints[idx][0]);
-      const x = this.xScale(this._series[i].datapoints[idx][1]);
 
       series.push({
         value: this._series[i].datapoints[idx][0],
         color: this._options.colors[i],
         label: this._series[i].alias || this._series[i].target
       });
-
-      this._crosshair.select(`#crosshair-circle-${i}`)
-        .attr('cx', x)
-        .attr('cy', y);
     }
 
     this._options.eventsCallbacks.mouseMove({
       x: this._d3.event.clientX,
       y: this._d3.event.clientY,
-      time: this._series[0].datapoints[idx][1],
-      series
+      time: this.timestampScale.invert(eventX),
+      series,
+      chartX: eventX,
+      chartWidth: this.width
     });
   }
 
@@ -156,35 +113,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
   onMouseOut(): void {
     this._options.eventsCallbacks.mouseOut();
     this._crosshair.style('display', 'none');
-  }
-
-  onBrushEnd(): void {
-    const extent = this._d3.event.selection;
-    if(extent === undefined || extent === null || extent.length < 2) {
-      return;
-    }
-    const startTimestamp = this.xTimeScale.invert(extent[0]).getTime();
-    const endTimestamp = this.xTimeScale.invert(extent[1]).getTime();
-    const range: [number, number] = [startTimestamp, endTimestamp];
-    this._chartContainer
-      .call(this._brush.move, null);
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.zoomIn !== undefined) {
-      this._options.eventsCallbacks.zoomIn(range);
-    } else {
-      console.log('zoom in, but there is no callback');
-    }
-  }
-
-  zoomOut(): void {
-    if(this.isOutOfChart() === true) {
-      return;
-    }
-    const midTimestamp = this.xTimeScale.invert(this.width / 2).getTime();
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.zoomOut !== undefined) {
-      this._options.eventsCallbacks.zoomOut(midTimestamp);
-    } else {
-      console.log('zoom out, but there is no callback');
-    }
   }
 
   get rectWidth(): number {
