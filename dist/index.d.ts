@@ -9,17 +9,14 @@ import * as d3 from 'd3';
 export class ChartwerkBarChart extends ChartwerkBase {
     constructor(el: HTMLElement, _series?: TimeSerie[], _options?: Options);
     _renderMetrics(): void;
-    _renderNoDataPointsMessage(): void;
     _renderMetric(datapoints: number[][], options: {
         color: string;
     }, idx: number): void;
-    _renderCrosshair(): void;
-    _useBrush(): void;
+    renderSharedCrosshair(timestamp: number): void;
+    hideSharedCrosshair(): void;
     onMouseMove(): void;
     onMouseOver(): void;
     onMouseOut(): void;
-    onBrushEnd(): void;
-    zoomOut(): void;
     get rectWidth(): number;
     getBarHeight(value: number): number;
     get yScale(): d3.ScaleLinear<number, number>;
