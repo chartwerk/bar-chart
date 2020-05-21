@@ -55,8 +55,8 @@ export class ChartwerkBarChart extends ChartwerkBase {
 
     const x = this.timestampScale(timestamp);
     this._crosshair.select('#crosshair-line-x')
-      .attr('y1', 0).attr('x1', x)
-      .attr('y2', this.height).attr('x2', x);
+      .attr('x1', x)
+      .attr('x2', x);
   }
 
   public hideSharedCrosshair(): void {
@@ -71,8 +71,8 @@ export class ChartwerkBarChart extends ChartwerkBase {
       return;
     }
     this._crosshair.select('#crosshair-line-x')
-      .attr('y1', 0).attr('x1', eventX)
-      .attr('y2', this.height).attr('x2', eventX);
+      .attr('x1', eventX)
+      .attr('x2', eventX);
 
     if(this._series === undefined || this._series.length === 0) {
       return;
@@ -96,14 +96,18 @@ export class ChartwerkBarChart extends ChartwerkBase {
       });
     }
 
-    this._options.eventsCallbacks.mouseMove({
-      x: this._d3.event.clientX,
-      y: this._d3.event.clientY,
-      time: this.timestampScale.invert(eventX),
-      series,
-      chartX: eventX,
-      chartWidth: this.width
-    });
+    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseMove !== undefined) {
+      this._options.eventsCallbacks.mouseMove({
+        x: this._d3.event.clientX,
+        y: this._d3.event.clientY,
+        time: this.timestampScale.invert(eventX),
+        series,
+        chartX: eventX,
+        chartWidth: this.width
+      });
+    } else {
+      console.log('mouse move, but there is no callback');
+    }
   }
 
   onMouseOver(): void {
@@ -111,7 +115,11 @@ export class ChartwerkBarChart extends ChartwerkBase {
   }
 
   onMouseOut(): void {
-    this._options.eventsCallbacks.mouseOut();
+    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseOut !== undefined) {
+      this._options.eventsCallbacks.mouseOut();
+    } else {
+      console.log('mouse out, but there is no callback');
+    }
     this._crosshair.style('display', 'none');
   }
 
@@ -120,8 +128,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
       return 20;
     }
     const startTimestamp = _.first(this._series[0].datapoints)[1];
-    const interval = this._options.timeInterval * 60 * 1000;
-    const width = this.xScale(new Date(startTimestamp + interval)) / 2;
+    const width = this.xScale(new Date(startTimestamp + this.timeInterval)) / 2;
     return width / this.visibleSeries.length;
   }
 
