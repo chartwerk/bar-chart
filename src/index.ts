@@ -48,6 +48,25 @@ export class ChartwerkBarChart extends ChartwerkBase {
     this._chartContainer.selectAll('.bar-rect').filter(function (d, i, list) {
       return i === list.length - 1;
     }).attr('display', 'none');
+
+    if(!this._options.renderBarLabels) {
+      return;
+    }
+    this._chartContainer.selectAll('.bar-text')
+      .data(datapoints)
+      .enter()
+      .append('text')
+      .attr('class', 'bar-text')
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'black')
+      .attr('x', d => this.xScale(new Date(d[1])) + this.rectWidth / 2)
+      .attr('y', d => this.yScale(Math.max(d[0], 0) + 1))
+      .text(d => d[0]);
+
+    // TODO: use clip instead of display: none
+    this._chartContainer.selectAll('.bar-text').filter(function (d, i, list) {
+      return i === list.length - 1;
+    }).attr('display', 'none');
   }
 
   public renderSharedCrosshair(timestamp: number): void {
