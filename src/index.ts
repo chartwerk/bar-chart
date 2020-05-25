@@ -44,11 +44,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .attr('width', this.rectWidth)
       .attr('height', (d: [number, number]) => this.getBarHeight(d[0]));
 
-    // TODO: use clip instead of display: none
-    this._chartContainer.selectAll('.bar-rect').filter(function (d, i, list) {
-      return i === list.length - 1;
-    }).attr('display', 'none');
-
     if(!this._options.renderBarLabels) {
       return;
     }
@@ -62,11 +57,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .attr('x', d => this.xScale(new Date(d[1])) + this.rectWidth / 2)
       .attr('y', d => this.yScale(Math.max(d[0], 0) + 1))
       .text(d => d[0]);
-
-    // TODO: use clip instead of display: none
-    this._chartContainer.selectAll('.bar-text').filter(function (d, i, list) {
-      return i === list.length - 1;
-    }).attr('display', 'none');
   }
 
   public renderSharedCrosshair(timestamp: number): void {
@@ -169,5 +159,24 @@ export class ChartwerkBarChart extends ChartwerkBase {
     return this._d3.scaleLinear()
       .domain([Math.max(this.maxValue, 0), Math.min(this.minValue, 0)])
       .range([0, this.height]);
+  }
+
+  get xScale(): d3.ScaleTime<number, number> {
+    if((this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) &&
+      this._options.timeRange !== undefined) {
+      return this._d3.scaleTime()
+        .domain([
+          new Date(this._options.timeRange.from),
+          new Date(this._options.timeRange.to)
+        ])
+        .range([0, this.width]);
+    }
+    // TODO: make this.timeInterval optional and move to base
+    return this._d3.scaleTime()
+      .domain([
+        new Date(_.first(this._series[0].datapoints)[1]),
+        new Date(_.last(this._series[0].datapoints)[1] + this.timeInterval)
+      ])
+      .range([0, this.width]);
   }
 }
