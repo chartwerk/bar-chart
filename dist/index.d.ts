@@ -20,5 +20,6 @@ export class ChartwerkBarChart extends ChartwerkBase {
     get rectWidth(): number;
     getBarHeight(value: number): number;
     get yScale(): d3.ScaleLinear<number, number>;
+    get xScale(): d3.ScaleTime<number, number>;
 }
 
