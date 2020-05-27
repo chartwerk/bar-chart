@@ -1,6 +1,6 @@
 {
   "name": "@chartwerk/bar-chart",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Chartwerk bar chart",
   "main": "dist/index.js",
   "scripts": {
