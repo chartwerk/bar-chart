@@ -22,4 +22,11 @@ export class ChartwerkBarChart extends ChartwerkBase {
     get yScale(): d3.ScaleLinear<number, number>;
     get xScale(): d3.ScaleTime<number, number>;
 }
+export const VueChartwerkBarChartObject: {
+    render(createElement: any): any;
+    mixins: any[];
+    methods: {
+        render(): void;
+    };
+};
 
