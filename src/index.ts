@@ -1,4 +1,4 @@
-import { ChartwerkBase, TimeSerie, Options } from '@chartwerk/base';
+import { ChartwerkBase, TimeSerie, Options, VueChartwerkBaseMixin } from '@chartwerk/base';
 
 import * as d3 from 'd3';
 import * as _ from 'lodash';
@@ -180,3 +180,23 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .range([0, this.width]);
   }
 }
+
+// it is used with Vue.component, e.g.: Vue.component('chartwerk-bar-chart', VueChartwerkBarChartObject)
+export const VueChartwerkBarChartObject = {
+  // alternative to `template: '<div class="chartwerk-bar-chart" :id="id" />'`
+  render(createElement) {
+    return createElement(
+      'div',
+      {
+        class: { 'chartwerk-bar-chart': true },
+        attrs: { id: this.id }
+      }
+    )
+  },
+  mixins: [VueChartwerkBaseMixin],
+  methods: {
+    render() {
+      new ChartwerkBarChart(document.getElementById(this.id), this.series, this.options);
+    }
+  }
+};
