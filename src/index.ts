@@ -1,25 +1,29 @@
-import { ChartwerkBase, TimeSerie, Options, VueChartwerkBaseMixin } from '@chartwerk/base';
+import { ChartwerkBase, VueChartwerkBaseMixin } from '@chartwerk/base';
+
+import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 
+const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
+  renderBarLabels: false,
+}
 
-export class ChartwerkBarChart extends ChartwerkBase {
-  constructor(el: HTMLElement, _series: TimeSerie[] = [], _options: Options = {}) {
+export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
+
+  constructor(el: HTMLElement, _series: BarTimeSerie[] = [], _options: BarOptions = {}) {
     super(d3, el, _series, _options);
+    _.defaults(this._options, DEFAULT_BAR_OPTIONS);
   }
 
-  // TODO: private, type for timeseries
   _renderMetrics(): void {
     for(const i in this._series) {
-      // @ts-ignore
-      this._series[i].color = this._options.colors[i];
+      this._series[i].color = this._series[i].color || this._options.colors[i];
     }
     if(this.visibleSeries.length > 0) {
       for(const idx in this.visibleSeries) {
         this._renderMetric(
           this.visibleSeries[idx].datapoints,
-          // @ts-ignore
           { color: this.visibleSeries[idx].color },
           Number(idx)
         );
@@ -34,6 +38,7 @@ export class ChartwerkBarChart extends ChartwerkBase {
       .data(datapoints)
       .enter().append('rect')
       .attr('class', 'bar-rect')
+      .attr('clip-path', `url(#${this.rectClipId})`)
       .style('fill', options.color)
       .attr('x', (d: [number, number]) => {
         return this.xScale(new Date(d[1])) + idx * this.rectWidth;
