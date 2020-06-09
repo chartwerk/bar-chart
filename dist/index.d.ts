@@ -3,11 +3,12 @@
 //   ../@chartwerk/base
 //   ../d3
 
-import { ChartwerkBase, TimeSerie, Options } from '@chartwerk/base';
+import { ChartwerkBase } from '@chartwerk/base';
 import * as d3 from 'd3';
+import { TimeSerie, Options, TickOrientation, TimeFormat } from '@chartwerk/base';
 
-export class ChartwerkBarChart extends ChartwerkBase {
-    constructor(el: HTMLElement, _series?: TimeSerie[], _options?: Options);
+export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
+    constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     _renderMetrics(): void;
     _renderMetric(datapoints: number[][], options: {
         color: string;
@@ -29,4 +30,11 @@ export const VueChartwerkBarChartObject: {
         render(): void;
     };
 };
+
+export type BarTimeSerie = TimeSerie;
+export type BarOptionsParams = {
+    renderBarLabels: boolean;
+};
+export type BarOptions = Options & Partial<BarOptionsParams>;
+export { TickOrientation, TimeFormat };
 
