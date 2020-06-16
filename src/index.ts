@@ -201,7 +201,8 @@ export const VueChartwerkBarChartObject = {
   mixins: [VueChartwerkBaseMixin],
   methods: {
     render() {
-      new ChartwerkBarChart(document.getElementById(this.id), this.series, this.options);
+      const pod = new ChartwerkBarChart(document.getElementById(this.id), this.series, this.options);
+      pod.render();
     }
   }
 };
