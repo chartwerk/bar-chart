@@ -1,4 +1,4 @@
-import { ChartwerkBase } from '@chartwerk/base';
+import { ChartwerkBase, TickOrientation, TimeFormat } from '@chartwerk/base';
 import { BarTimeSerie, BarOptions } from './types';
 import * as d3 from 'd3';
 export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
@@ -57,3 +57,4 @@ export declare const VueChartwerkBarChartObject: {
         render(): void;
     };
 };
+export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat };
