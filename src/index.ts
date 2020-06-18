@@ -1,4 +1,4 @@
-import { ChartwerkBase, VueChartwerkBaseMixin } from '@chartwerk/base';
+import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat } from '@chartwerk/base';
 
 import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 
@@ -206,3 +206,5 @@ export const VueChartwerkBarChartObject = {
     }
   }
 };
+
+export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat };
