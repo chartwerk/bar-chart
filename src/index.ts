@@ -5,6 +5,7 @@ import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 
+
 const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
   renderBarLabels: false,
 }
@@ -17,9 +18,6 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   _renderMetrics(): void {
-    for(const i in this._series) {
-      this._series[i].color = this._series[i].color || this._options.colors[i];
-    }
     if(this.visibleSeries.length > 0) {
       for(const idx in this.visibleSeries) {
         this._renderMetric(
@@ -105,7 +103,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
       series.push({
         value: this._series[i].datapoints[idx][0],
-        color: this._options.colors[i],
+        color: this._series[i].color,
         label: this._series[i].alias || this._series[i].target
       });
     }
