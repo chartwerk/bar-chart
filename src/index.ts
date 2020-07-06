@@ -5,6 +5,7 @@ import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 
+
 const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
   renderBarLabels: false,
 }
@@ -17,29 +18,29 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   _renderMetrics(): void {
-    for(const i in this._series) {
-      this._series[i].color = this._series[i].color || this._options.colors[i];
-    }
-    if(this.visibleSeries.length > 0) {
-      for(const idx in this.visibleSeries) {
-        this._renderMetric(
-          this.visibleSeries[idx].datapoints,
-          { color: this.visibleSeries[idx].color },
-          Number(idx)
-        );
-      }
-    } else {
+    if(this._series.length === 0) {
       this._renderNoDataPointsMessage();
+      return;
+    }
+    for(let idx = 0; idx < this._series.length; ++idx) {
+      if(this._series[idx].visible === false) {
+        continue;
+      }
+      this._renderMetric(
+        this._series[idx].datapoints,
+        { color: this.getSerieColor(idx) },
+        idx
+      );
     }
   }
 
-  _renderMetric(datapoints: number[][], options: { color: string }, idx: number): void {
+  _renderMetric(datapoints: number[][], metricOptions: { color: string }, idx: number): void {
     this._chartContainer.selectAll('bar')
       .data(datapoints)
       .enter().append('rect')
       .attr('class', 'bar-rect')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .style('fill', options.color)
+      .style('fill', metricOptions.color)
       .attr('x', (d: [number, number]) => {
         return this.xScale(new Date(d[1])) + idx * this.rectWidth;
       })
@@ -105,7 +106,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
       series.push({
         value: this._series[i].datapoints[idx][0],
-        color: this._options.colors[i],
+        color: this.getSerieColor(i),
         label: this._series[i].alias || this._series[i].target
       });
     }
