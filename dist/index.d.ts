@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     _renderMetrics(): void;
-    _renderMetric(datapoints: number[][], options: {
+    _renderMetric(datapoints: number[][], metricOptions: {
         color: string;
     }, idx: number): void;
     renderSharedCrosshair(timestamp: number): void;
