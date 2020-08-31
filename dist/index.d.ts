@@ -15,7 +15,7 @@ export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOp
     get rectWidth(): number;
     getBarHeight(value: number): number;
     get yScale(): d3.ScaleLinear<number, number>;
-    get xScale(): d3.ScaleTime<number, number>;
+    get xScale(): d3.ScaleTime<number, number> | d3.ScaleLinear<number, number>;
 }
 export declare const VueChartwerkBarChartObject: {
     render(createElement: any): any;
