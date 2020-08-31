@@ -1,4 +1,4 @@
-import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat } from '@chartwerk/base';
+import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/base';
 
 import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 
@@ -94,6 +94,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     }
 
     const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
+    // @ts-ignore
     const mouseDate = this.xScale.invert(eventX).getTime();
 
     let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
@@ -142,8 +143,13 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     if(this._options === undefined) {
       return 20;
     }
-    const startTimestamp = _.first(this._series[0].datapoints)[1];
-    const width = this.xScale(new Date(startTimestamp + this.timeInterval)) / 2;
+    const xAxisStartValue = _.first(this._series[0].datapoints)[1];
+    let width: number;
+    if(this._options.axis.x.format === 'time') {
+      width = this.xScale(new Date(xAxisStartValue + this.timeInterval)) / 2;
+    } else {
+      width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
+    }
     return width / this.visibleSeries.length;
   }
 
@@ -167,7 +173,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       .range([0, this.height]);
   }
 
-  get xScale(): d3.ScaleTime<number, number> {
+  get xScale(): d3.ScaleTime<number, number> | d3.ScaleLinear<number, number> {
     if((this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) &&
       this._options.timeRange !== undefined) {
       return this._d3.scaleTime()
@@ -177,13 +183,27 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
         ])
         .range([0, this.width]);
     }
-    // TODO: make this.timeInterval optional and move to base
-    return this._d3.scaleTime()
-      .domain([
-        new Date(_.first(this._series[0].datapoints)[1]),
-        new Date(_.last(this._series[0].datapoints)[1] + this.timeInterval)
-      ])
-      .range([0, this.width]);
+    switch(this._options.axis.x.format) {
+      case 'time':
+        // TODO: make this.timeInterval optional and move to base
+        return this._d3.scaleTime()
+          .domain([
+            new Date(_.first(this._series[0].datapoints)[1]),
+            new Date(_.last(this._series[0].datapoints)[1] + this.timeInterval)
+          ])
+          .range([0, this.width]);
+      case 'numeric':
+        return this._d3.scaleLinear()
+          .domain([
+            _.first(this._series[0].datapoints)[1],
+            _.last(this._series[0].datapoints)[1]
+          ])
+          .range([0, this.width]);
+      case 'string':
+      // TODO: add string/symbol format
+      default:
+        throw new Error(`Unknown time format for x-axis: ${this._options.axis.x.format}`);
+    }
   }
 }
 
