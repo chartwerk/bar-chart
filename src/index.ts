@@ -18,7 +18,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   _renderMetrics(): void {
-    if(this._series.length === 0) {
+    if(this._series.length === 0 || this._series[0].datapoints.length === 0) {
       this._renderNoDataPointsMessage();
       return;
     }
