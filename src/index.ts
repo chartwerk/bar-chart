@@ -1,4 +1,4 @@
-import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat } from '@chartwerk/base';
+import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/base';
 
 import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 
@@ -8,6 +8,7 @@ import * as _ from 'lodash';
 
 const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
   renderBarLabels: false,
+  stacked: false
 }
 
 export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
@@ -18,51 +19,47 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   _renderMetrics(): void {
-    if(this._series.length === 0) {
+    if(this._series.length === 0 || this._series[0].datapoints.length === 0) {
       this._renderNoDataPointsMessage();
       return;
     }
-    for(let idx = 0; idx < this._series.length; ++idx) {
-      if(this._series[idx].visible === false) {
-        continue;
-      }
-      this._renderMetric(
-        this._series[idx].datapoints,
-        { color: this.getSerieColor(idx) },
-        idx
-      );
-    }
+
+    const zippedData = this.zippedDataForRender;
+    this._chartContainer.selectAll('.rects-container')
+      .data(zippedData)
+      .enter().append('g')
+      .attr('class', 'rects-container')
+      .attr('clip-path', `url(#${this.rectClipId})`)
+      .each((d: { key: number, values: number[] }, i: number, nodes: any) => {
+        const container = d3.select(nodes[i]);
+        container.selectAll('rect')
+        .data(d.values)
+        .enter().append('rect')
+        .style('fill', (val, i) => this.getSerieColor(i))
+        .attr('x', (val: number, idx: number) => {
+          return this.getBarPositionX(d.key, idx);
+        })
+        .attr('y', (val: number, idx: number) => {
+          return this.getBarPositionY(val, idx, d.values);
+        })
+        .attr('width', this.barWidth)
+        .attr('height', (val: number) => this.getBarHeight(val));
+      });
+
+    // TODO: render bar labels
   }
 
-  _renderMetric(datapoints: number[][], metricOptions: { color: string }, idx: number): void {
-    this._chartContainer.selectAll('bar')
-      .data(datapoints)
-      .enter().append('rect')
-      .attr('class', 'bar-rect')
-      .attr('clip-path', `url(#${this.rectClipId})`)
-      .style('fill', metricOptions.color)
-      .attr('x', (d: [number, number]) => {
-        return this.xScale(new Date(d[1])) + idx * this.rectWidth;
-      })
-      .attr('y', (d: [number, number]) => {
-        return this.yScale(Math.max(d[0],0));
-      })
-      .attr('width', this.rectWidth)
-      .attr('height', (d: [number, number]) => this.getBarHeight(d[0]));
-
-    if(!this._options.renderBarLabels) {
-      return;
+  get zippedDataForRender(): { key: number, values: number[] }[] {
+    if(this.visibleSeries.length === 0) {
+      throw new Error('There is no visible series');
     }
-    this._chartContainer.selectAll('.bar-text')
-      .data(datapoints)
-      .enter()
-      .append('text')
-      .attr('class', 'bar-text')
-      .attr('text-anchor', 'middle')
-      .attr('fill', 'black')
-      .attr('x', d => this.xScale(new Date(d[1])) + this.rectWidth / 2)
-      .attr('y', d => this.yScale(Math.max(d[0], 0) + 1))
-      .text(d => d[0]);
+  
+    const keysColumn = _.map(this.visibleSeries[0].datapoints, row => row[1]);
+    const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+    const zippedValuesColumn = _.zip(...valuesColumns);
+    const zippedData = _.zip(keysColumn, zippedValuesColumn);
+    const data = _.map(zippedData, row => { return { key: row[0], values: row[1] } });
+    return data;
   }
 
   public renderSharedCrosshair(timestamp: number): void {
@@ -94,6 +91,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     }
 
     const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
+    // @ts-ignore
     const mouseDate = this.xScale.invert(eventX).getTime();
 
     let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
@@ -138,19 +136,49 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     this._crosshair.style('display', 'none');
   }
 
-  get rectWidth(): number {
+  get barWidth(): number {
+    // TODO: Do we need this defaults?
     if(this._options === undefined) {
       return 20;
     }
-    const startTimestamp = _.first(this._series[0].datapoints)[1];
-    const width = this.xScale(new Date(startTimestamp + this.timeInterval)) / 2;
-    return width / this.visibleSeries.length;
+    const xAxisStartValue = _.first(this._series[0].datapoints)[1];
+    let width: number;
+    if(this._options.axis.x.format === 'time') {
+      width = this.xScale(new Date(xAxisStartValue + this.timeInterval)) / 2;
+    } else {
+      width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
+    }
+    let rectColumns = this.visibleSeries.length;
+    if(this._options.stacked === true) {
+      rectColumns = 1;
+    }
+    return width / rectColumns;
   }
 
   getBarHeight(value: number): number {
     // TODO: Property 'sign' does not exist on type 'Math'
     // @ts-ignore
-    return Math.sign(value) * (this.yScale(0) - this.yScale(value));
+    const height = Math.sign(value) * (this.yScale(0) - this.yScale(value));
+    return height;
+  }
+
+  getBarPositionX(key: number, idx: number): number {
+    let xPosition: number = this.xScale(key);
+    if(this._options.stacked === false) {
+      xPosition += idx * this.barWidth;
+    }
+    return xPosition;
+  }
+
+  getBarPositionY(val: number, idx: number, values: number[]): number {
+    let yPosition: number = this.yScale(Math.max(val, 0));
+    if(this._options.stacked === true) {
+      const previousBarsHeight = _.sum(
+        _.map(_.range(idx), i => this.getBarHeight(values[i]))
+      );
+      yPosition -= previousBarsHeight;
+    }
+    return yPosition;
   }
 
   get yScale(): d3.ScaleLinear<number, number> {
@@ -163,11 +191,30 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
         .range([0, this.height]);
     }
     return this._d3.scaleLinear()
-      .domain([Math.max(this.maxValue, 0), Math.min(this.minValue, 0)])
+      .domain([this.maxValue, Math.min(this.minValue, 0)])
       .range([0, this.height]);
   }
 
-  get xScale(): d3.ScaleTime<number, number> {
+  get maxValue(): number | undefined {
+    if(this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) {
+      return undefined;
+    }
+    let maxValue: number;
+    if(this._options.stacked === true) {
+      const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+      const zippedValuesColumn = _.zip(...valuesColumns);
+      maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row))); 
+    } else {
+      maxValue = _.max(
+        this.visibleSeries.map(
+          serie => _.maxBy<number[]>(serie.datapoints, dp => dp[0])[0]
+        )
+      );
+    }
+    return Math.max(maxValue, 0);
+  }
+
+  get xScale(): d3.ScaleTime<number, number> | d3.ScaleLinear<number, number> {
     if((this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) &&
       this._options.timeRange !== undefined) {
       return this._d3.scaleTime()
@@ -177,13 +224,27 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
         ])
         .range([0, this.width]);
     }
-    // TODO: make this.timeInterval optional and move to base
-    return this._d3.scaleTime()
-      .domain([
-        new Date(_.first(this._series[0].datapoints)[1]),
-        new Date(_.last(this._series[0].datapoints)[1] + this.timeInterval)
-      ])
-      .range([0, this.width]);
+    switch(this._options.axis.x.format) {
+      case 'time':
+        // TODO: make this.timeInterval optional and move to base
+        return this._d3.scaleTime()
+          .domain([
+            new Date(_.first(this._series[0].datapoints)[1]),
+            new Date(_.last(this._series[0].datapoints)[1] + this.timeInterval)
+          ])
+          .range([0, this.width]);
+      case 'numeric':
+        return this._d3.scaleLinear()
+          .domain([
+            _.first(this._series[0].datapoints)[1],
+            _.last(this._series[0].datapoints)[1] + this.timeInterval
+          ])
+          .range([0, this.width]);
+      case 'string':
+      // TODO: add string/symbol format
+      default:
+        throw new Error(`Unknown time format for x-axis: ${this._options.axis.x.format}`);
+    }
   }
 }
 

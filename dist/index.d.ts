@@ -4,18 +4,22 @@ import * as d3 from 'd3';
 export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     _renderMetrics(): void;
-    _renderMetric(datapoints: number[][], metricOptions: {
-        color: string;
-    }, idx: number): void;
+    get zippedDataForRender(): {
+        key: number;
+        values: number[];
+    }[];
     renderSharedCrosshair(timestamp: number): void;
     hideSharedCrosshair(): void;
     onMouseMove(): void;
     onMouseOver(): void;
     onMouseOut(): void;
-    get rectWidth(): number;
+    get barWidth(): number;
     getBarHeight(value: number): number;
+    getBarPositionX(key: number, idx: number): number;
+    getBarPositionY(val: number, idx: number, values: number[]): number;
     get yScale(): d3.ScaleLinear<number, number>;
-    get xScale(): d3.ScaleTime<number, number>;
+    get maxValue(): number | undefined;
+    get xScale(): d3.ScaleTime<number, number> | d3.ScaleLinear<number, number>;
 }
 export declare const VueChartwerkBarChartObject: {
     render(createElement: any): any;
