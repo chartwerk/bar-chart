@@ -46,7 +46,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
         .attr('height', (val: number) => this.getBarHeight(val));
       });
 
-    // TODO: add render bar labels
+    // TODO: render bar labels
   }
 
   get zippedDataForRender(): { key: number, values: number[] }[] {
