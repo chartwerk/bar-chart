@@ -47,19 +47,6 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       });
 
     // TODO: add render bar labels
-    // if (!this._options.renderBarLabels) {
-    //   return;
-    // }
-    // this._chartContainer.selectAll('.bar-text')
-    //   .data(datapoints)
-    //   .enter()
-    //   .append('text')
-    //   .attr('class', 'bar-text')
-    //   .attr('text-anchor', 'middle')
-    //   .attr('fill', 'black')
-    //   .attr('x', d => this.xScale(new Date(d[1])) + this.barWidth / 2)
-    //   .attr('y', d => this.yScale(Math.max(d[0], 0) + 1))
-    //   .text(d => d[0]);
   }
 
   get zippedDataForRender(): { key: number, values: number[] }[] {
