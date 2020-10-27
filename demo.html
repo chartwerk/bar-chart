@@ -11,8 +11,9 @@
 
     <script type="text/javascript">
       var pod = new ChartwerkBarChart(
-        document.getElementById('chart'), 
-        [{ target: 'test', datapoints: [[100, 1590590148], [200, 1590591148], [100, 1590592148]] }]
+        document.getElementById('chart'),
+        [{ target: 'test', datapoints: [[100, 1590590148], [200, 1590591148], [100, 1590592148]] }],
+        { usePanning: false }
       );
       pod.render();
     </script>
