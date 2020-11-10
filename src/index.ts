@@ -87,10 +87,6 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     this._crosshair.style('display', 'none');
   }
 
-  rescaleMetrics() {
-    // TODO: add rescale bars
-  }
-
   onMouseMove(): void {
     const event = this._d3.mouse(this._chartContainer.node());
     const eventX = event[0];
@@ -140,6 +136,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   onMouseOver(): void {
     this._crosshair.style('display', null);
+    this._crosshair.raise();
   }
 
   onMouseOut(): void {
@@ -232,7 +229,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   get xScale(): d3.ScaleLinear<number, number> {
     const domain = this._state.xValueRange || [this.minValueX, this.maxValueX];
     return this._d3.scaleLinear()
-      .domain([domain[0], domain[1] + this.timeInterval])
+      .domain([domain[0], domain[1] + this.timeInterval / 2])
       .range([0, this.width]);
   }
 }
@@ -258,4 +255,4 @@ export const VueChartwerkBarChartObject = {
   }
 };
 
-export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat };
+export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat, AxisFormat };
