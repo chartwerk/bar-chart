@@ -12,6 +12,7 @@ const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
 }
 
 export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
+  _metricsContainer: any;
 
   constructor(el: HTMLElement, _series: BarTimeSerie[] = [], _options: BarOptions = {}) {
     super(d3, el, _series, _options);
@@ -24,8 +25,18 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       return;
     }
 
+    // container for clip path
+    const clipContatiner = this._chartContainer
+      .append('g')
+      .attr('clip-path', `url(#${this.rectClipId})`)
+      .attr('class', 'metrics-container');
+    // container for panning
+    this._metricsContainer = clipContatiner
+      .append('g')
+      .attr('class', ' metrics-rect')
+
     const zippedData = this.zippedDataForRender;
-    this._chartContainer.selectAll('.rects-container')
+    this._metricsContainer.selectAll('.rects-container')
       .data(zippedData)
       .enter().append('g')
       .attr('class', 'rects-container')
@@ -36,6 +47,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
         .data(d.values)
         .enter().append('rect')
         .style('fill', (val, i) => this.getSerieColor(i))
+        .style('pointer-events', 'none')
         .attr('x', (val: number, idx: number) => {
           return this.getBarPositionX(d.key, idx);
         })
@@ -65,7 +77,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   public renderSharedCrosshair(timestamp: number): void {
     this._crosshair.style('display', null);
 
-    const x = this.timestampScale(timestamp);
+    const x = this.xScale(timestamp);
     this._crosshair.select('#crosshair-line-x')
       .attr('x1', x)
       .attr('x2', x);
@@ -91,8 +103,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     }
 
     const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
-    // @ts-ignore
-    const mouseDate = this.xScale.invert(eventX).getTime();
+    const mouseDate = this.xScale.invert(eventX);
 
     let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
 
@@ -113,7 +124,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       this._options.eventsCallbacks.mouseMove({
         x: this._d3.event.clientX,
         y: this._d3.event.clientY,
-        time: this.timestampScale.invert(eventX),
+        time: this.xScale.invert(eventX),
         series,
         chartX: eventX,
         chartWidth: this.width
@@ -125,6 +136,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   onMouseOver(): void {
     this._crosshair.style('display', null);
+    this._crosshair.raise();
   }
 
   onMouseOut(): void {
@@ -214,37 +226,11 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     return Math.max(maxValue, 0);
   }
 
-  get xScale(): d3.ScaleTime<number, number> | d3.ScaleLinear<number, number> {
-    if((this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) &&
-      this._options.timeRange !== undefined) {
-      return this._d3.scaleTime()
-        .domain([
-          new Date(this._options.timeRange.from),
-          new Date(this._options.timeRange.to)
-        ])
-        .range([0, this.width]);
-    }
-    switch(this._options.axis.x.format) {
-      case 'time':
-        // TODO: make this.timeInterval optional and move to base
-        return this._d3.scaleTime()
-          .domain([
-            new Date(_.first(this._series[0].datapoints)[1]),
-            new Date(_.last(this._series[0].datapoints)[1] + this.timeInterval)
-          ])
-          .range([0, this.width]);
-      case 'numeric':
-        return this._d3.scaleLinear()
-          .domain([
-            _.first(this._series[0].datapoints)[1],
-            _.last(this._series[0].datapoints)[1] + this.timeInterval
-          ])
-          .range([0, this.width]);
-      case 'string':
-      // TODO: add string/symbol format
-      default:
-        throw new Error(`Unknown time format for x-axis: ${this._options.axis.x.format}`);
-    }
+  get xScale(): d3.ScaleLinear<number, number> {
+    const domain = this._state.xValueRange || [this.minValueX, this.maxValueX];
+    return this._d3.scaleLinear()
+      .domain([domain[0], domain[1] + this.timeInterval / 2])
+      .range([0, this.width]);
   }
 }
 
@@ -269,4 +255,4 @@ export const VueChartwerkBarChartObject = {
   }
 };
 
-export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat };
+export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat, AxisFormat };
