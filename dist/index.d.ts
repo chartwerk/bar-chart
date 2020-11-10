@@ -1,7 +1,8 @@
-import { ChartwerkBase, TickOrientation, TimeFormat } from '@chartwerk/base';
+import { ChartwerkBase, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/base';
 import { BarTimeSerie, BarOptions } from './types';
 import * as d3 from 'd3';
 export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
+    _metricsContainer: any;
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     _renderMetrics(): void;
     get zippedDataForRender(): {
@@ -19,7 +20,7 @@ export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOp
     getBarPositionY(val: number, idx: number, values: number[]): number;
     get yScale(): d3.ScaleLinear<number, number>;
     get maxValue(): number | undefined;
-    get xScale(): d3.ScaleTime<number, number> | d3.ScaleLinear<number, number>;
+    get xScale(): d3.ScaleLinear<number, number>;
 }
 export declare const VueChartwerkBarChartObject: {
     render(createElement: any): any;
@@ -61,4 +62,4 @@ export declare const VueChartwerkBarChartObject: {
         render(): void;
     };
 };
-export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat };
+export { BarTimeSerie, BarOptions, TickOrientation, TimeFormat, AxisFormat };
