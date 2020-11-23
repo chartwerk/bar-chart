@@ -6,7 +6,7 @@ import * as d3 from 'd3';
 import * as _ from 'lodash';
 
 
-const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
+const DEFAULT_BAR_OPTIONS: BarOptions = {
   renderBarLabels: false,
   stacked: false
 }
@@ -149,9 +149,8 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   get barWidth(): number {
-    // TODO: Do we need this defaults?
-    if(this._options === undefined) {
-      return 20;
+    if(this._options.barWidth !== undefined) {
+      return this._options.barWidth;
     }
     const xAxisStartValue = _.first(this._series[0].datapoints)[1];
     let width: number;
