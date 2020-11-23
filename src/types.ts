@@ -4,6 +4,6 @@ export type BarTimeSerie = TimeSerie;
 export type BarOptionsParams = {
   renderBarLabels: boolean;
   stacked: boolean;
-  barWidth: number;
+  maxBarWidth: number;
 }
 export type BarOptions = Options & Partial<BarOptionsParams>;

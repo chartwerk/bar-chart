@@ -149,9 +149,6 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   get barWidth(): number {
-    if(this._options.barWidth !== undefined) {
-      return this._options.barWidth;
-    }
     const xAxisStartValue = _.first(this._series[0].datapoints)[1];
     let width: number;
     if(this._options.axis.x.format === 'time') {
@@ -162,6 +159,10 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     let rectColumns = this.visibleSeries.length;
     if(this._options.stacked === true) {
       rectColumns = 1;
+    }
+    
+    if(this._options.maxBarWidth !== undefined) {
+      return (width / rectColumns > this._options.maxBarWidth) ? this._options.maxBarWidth : width / rectColumns;
     }
     return width / rectColumns;
   }
