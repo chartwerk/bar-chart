@@ -47,7 +47,6 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
         .data(d.values)
         .enter().append('rect')
         .style('fill', (val, i) => this.getSerieColor(i))
-        .style('pointer-events', 'none')
         .attr('x', (val: number, idx: number) => {
           return this.getBarPositionX(d.key, idx);
         })
@@ -55,7 +54,8 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
           return this.getBarPositionY(val, idx, d.values);
         })
         .attr('width', this.barWidth)
-        .attr('height', (val: number) => this.getBarHeight(val));
+        .attr('height', (val: number) => this.getBarHeight(val))
+        .on('contextmenu', this.contextMenu.bind(this));
       });
 
     // TODO: render bar labels
@@ -98,27 +98,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       .attr('x1', eventX)
       .attr('x2', eventX);
 
-    if(this._series === undefined || this._series.length === 0) {
-      return;
-    }
-
-    const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
-    const mouseDate = this.xScale.invert(eventX);
-
-    let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
-
-    const series: any[] = [];
-    for(let i = 0; i < this._series.length; i++) {
-      if(this._series[i].visible === false) {
-        continue;
-      }
-
-      series.push({
-        value: this._series[i].datapoints[idx][0],
-        color: this.getSerieColor(i),
-        label: this._series[i].alias || this._series[i].target
-      });
-    }
+    const series = this.getSeriesPointFromMousePosition(eventX);
 
     if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseMove !== undefined) {
       this._options.eventsCallbacks.mouseMove({
@@ -134,6 +114,33 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     }
   }
 
+  // TODO: not any[]
+  getSeriesPointFromMousePosition(eventX: number): any[] | undefined {
+    if(this._series === undefined || this._series.length === 0) {
+      return undefined;
+    }
+
+    const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
+    const mouseDate = this.xScale.invert(eventX);
+
+    let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
+
+    const series: any[] = [];
+    for(let i = 0; i < this._series.length; i++) {
+      if(this._series[i].visible === false) {
+        continue;
+      }
+
+      series.push({
+        value: this._series[i].datapoints[idx][0],
+        xval: this._series[i].datapoints[idx][1],
+        color: this.getSerieColor(i),
+        label: this._series[i].alias || this._series[i].target
+      });
+    }
+    return series;
+  }
+
   onMouseOver(): void {
     this._crosshair.style('display', null);
     this._crosshair.raise();
@@ -146,6 +153,27 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       console.log('mouse out, but there is no callback');
     }
     this._crosshair.style('display', 'none');
+  }
+
+  contextMenu(): void {
+    // maybe it is not the best name, but i took it from d3.
+    this._d3.event.preventDefault(); // do not open browser's context menu.
+
+    const event = this._d3.mouse(this._chartContainer.node());
+    const eventX = event[0];
+    const series = this.getSeriesPointFromMousePosition(eventX);
+
+    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.contextMenu !== undefined) {
+      this._options.eventsCallbacks.contextMenu({
+        x: this._d3.event.pageX,
+        y: this._d3.event.pageY,
+        time: this.xScale.invert(eventX),
+        series,
+        chartX: eventX
+      });
+    } else {
+      console.log('contextmenu, but there is no callback');
+    }
   }
 
   get barWidth(): number {
