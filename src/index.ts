@@ -122,8 +122,8 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
     if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseMove !== undefined) {
       this._options.eventsCallbacks.mouseMove({
-        x: this._d3.event.clientX,
-        y: this._d3.event.clientY,
+        x: this._d3.event.pageX,
+        y: this._d3.event.pageY,
         time: this.xScale.invert(eventX),
         series,
         chartX: eventX,
