@@ -149,20 +149,16 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   get barWidth(): number {
+    // TODO: here we use first value + timeInterval as bar width. It is not a good idea
     const xAxisStartValue = _.first(this._series[0].datapoints)[1];
-    let width: number;
-    if(this._options.axis.x.format === 'time') {
-      width = this.xScale(new Date(xAxisStartValue + this.timeInterval)) / 2;
-    } else {
-      width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
+    let width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
+    if(this._options.maxBarWidth !== undefined) {
+      // maxBarWidth now has axis-x dimension
+      width = this.xScale(this.minValueX + this._options.maxBarWidth);
     }
     let rectColumns = this.visibleSeries.length;
     if(this._options.stacked === true) {
       rectColumns = 1;
-    }
-    
-    if(this._options.maxBarWidth !== undefined) {
-      return (width / rectColumns > this._options.maxBarWidth) ? this._options.maxBarWidth : width / rectColumns;
     }
     return width / rectColumns;
   }
