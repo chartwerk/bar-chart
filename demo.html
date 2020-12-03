@@ -16,7 +16,16 @@
           { target: 'test', datapoints: [[100, 100], [200, 200], [100, 300]] },
           { target: 'test2', datapoints: [[120, 100], [80, 200], [150, 300]] }
         ],
-        { usePanning: false, axis: { x: { format: 'numeric'} }, stacked: true }
+        {
+          usePanning: true,
+          axis: {
+            x: { format: 'numeric', invert: false },
+            y: { invert: false }
+          },
+          stacked: false,
+          zoom: { orientation: 'horizontal' },
+          maxBarWidth: 50
+        }
       );
       pod.render();
     </script>
