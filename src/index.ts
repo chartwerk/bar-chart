@@ -127,7 +127,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
     const series: any[] = [];
     for(let i = 0; i < this._series.length; i++) {
-      if(this._series[i].visible === false) {
+      if(this._series[i].visible === false || this._series[i].datapoints.length < idx + 1) {
         continue;
       }
 
