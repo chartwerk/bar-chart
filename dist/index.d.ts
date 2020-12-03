@@ -56,6 +56,7 @@ export declare const VueChartwerkBarChartObject: {
             mouseMove(evt: any): void;
             mouseOut(): void;
             onLegendClick(idx: any): void;
+            panningEnd(range: any): void;
         };
     }[];
     methods: {
