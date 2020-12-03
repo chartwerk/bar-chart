@@ -12,8 +12,10 @@ export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOp
     renderSharedCrosshair(timestamp: number): void;
     hideSharedCrosshair(): void;
     onMouseMove(): void;
+    getSeriesPointFromMousePosition(eventX: number): any[] | undefined;
     onMouseOver(): void;
     onMouseOut(): void;
+    contextMenu(): void;
     get barWidth(): number;
     getBarHeight(value: number): number;
     getBarPositionX(key: number, idx: number): number;
@@ -57,6 +59,7 @@ export declare const VueChartwerkBarChartObject: {
             mouseOut(): void;
             onLegendClick(idx: any): void;
             panningEnd(range: any): void;
+            contextMenu(evt: any): void;
         };
     }[];
     methods: {
