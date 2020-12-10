@@ -8,7 +8,8 @@ import * as _ from 'lodash';
 
 const DEFAULT_BAR_OPTIONS: BarOptions = {
   renderBarLabels: false,
-  stacked: false
+  stacked: false,
+  matchedData: true
 }
 
 export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
@@ -36,38 +37,54 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       .attr('class', ' metrics-rect')
 
     const zippedData = this.zippedDataForRender;
+
     this._metricsContainer.selectAll('.rects-container')
       .data(zippedData)
       .enter().append('g')
       .attr('class', 'rects-container')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .each((d: { key: number, values: number[] }, i: number, nodes: any) => {
+      .each((d: { key: number, values: number[][] }, i: number, nodes: any) => {
         const container = d3.select(nodes[i]);
-        container.selectAll('rect')
+        container.selectAll('g')
         .data(d.values)
-        .enter().append('rect')
-        .style('fill', (val, i) => this.getSerieColor(i))
-        .attr('x', (val: number, idx: number) => {
-          return this.getBarPositionX(d.key, idx);
-        })
-        .attr('y', (val: number, idx: number) => {
-          return this.getBarPositionY(val, idx, d.values);
-        })
-        .attr('width', this.barWidth)
-        .attr('height', (val: number) => this.getBarHeight(val))
-        .on('contextmenu', this.contextMenu.bind(this));
+        .enter().append('g')
+        .each((dd: number[], di: number, dnodes: any) => {
+          const container = d3.select(dnodes[di]);
+          container.selectAll('rect')
+            .data(dd)
+            .enter().append('rect')
+            .style('fill', (val, i) => this._series[di].colors[i])
+            .attr('x', (val: number, idx: number) => {
+              return this.getBarPositionX(d.key, di);
+            })
+            .attr('y', (val: number, idx: number) => {
+              return this.getBarPositionY(val, di, idx, d.values);
+            })
+            .attr('width', this.barWidth)
+            .attr('height', (val: number) => this.getBarHeight(val))
+            .on('contextmenu', this.contextMenu.bind(this));
+        });
       });
 
     // TODO: render bar labels
   }
 
-  get zippedDataForRender(): { key: number, values: number[] }[] {
+  get zippedDataForRender(): { key: number, values: number[][] }[] {
     if(this.visibleSeries.length === 0) {
       throw new Error('There is no visible series');
     }
   
     const keysColumn = _.map(this.visibleSeries[0].datapoints, row => row[1]);
-    const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+    const valuesColumns = _.map(
+      this.visibleSeries,
+      serie => _.map(
+        serie.datapoints,
+        row => {
+          const yValues = _.filter(row, (el, idx: number) => idx !== 1);
+          return yValues;
+        }
+      )
+    );
     const zippedValuesColumn = _.zip(...valuesColumns);
     const zippedData = _.zip(keysColumn, zippedValuesColumn);
     const data = _.map(zippedData, row => { return { key: row[0], values: row[1] } });
@@ -206,8 +223,12 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     return xPosition;
   }
 
-  getBarPositionY(val: number, idx: number, values: number[]): number {
-    let yPosition: number = this.yScale(Math.max(val, 0));
+  getBarPositionY(val: any, idx: number, i: number, values: any): number {
+    const previousBarsHeight = _.sum(
+      _.map(_.range(i + 1), index => this.getBarHeight(values[idx][index]))
+    );
+    let yPosition = this.bottomYPosition - previousBarsHeight;
+    // TODO: several metrics with stacked === true doesn't work
     if(this._options.stacked === true) {
       const previousBarsHeight = _.sum(
         _.map(_.range(idx), i => this.getBarHeight(values[i]))
@@ -215,6 +236,10 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       yPosition -= previousBarsHeight;
     }
     return yPosition;
+  }
+
+  get bottomYPosition(): number {
+    return this.yScale(0);
   }
 
   get yScale(): d3.ScaleLinear<number, number> {
@@ -241,11 +266,12 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       const zippedValuesColumn = _.zip(...valuesColumns);
       maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row))); 
     } else {
-      maxValue = _.max(
-        this.visibleSeries.map(
-          serie => _.maxBy<number[]>(serie.datapoints, dp => dp[0])[0]
-        )
-      );
+      const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => {
+        const values = _.filter(row, (el, i: number) => i !== 1)
+        return _.sum(values);
+      }));
+      const zippedValuesColumn = _.zip(...valuesColumns);
+      maxValue = _.max(_.map(zippedValuesColumn, row => _.max(row)));
     }
     return Math.max(maxValue, 0);
   }
