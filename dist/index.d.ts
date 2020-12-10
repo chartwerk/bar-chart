@@ -7,7 +7,7 @@ export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOp
     _renderMetrics(): void;
     get zippedDataForRender(): {
         key: number;
-        values: number[];
+        values: number[][];
     }[];
     renderSharedCrosshair(timestamp: number): void;
     hideSharedCrosshair(): void;
@@ -19,7 +19,8 @@ export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOp
     get barWidth(): number;
     getBarHeight(value: number): number;
     getBarPositionX(key: number, idx: number): number;
-    getBarPositionY(val: number, idx: number, values: number[]): number;
+    getBarPositionY(val: any, idx: number, i: number, values: any): number;
+    get bottomYPosition(): number;
     get yScale(): d3.ScaleLinear<number, number>;
     get maxValue(): number | undefined;
     get xScale(): d3.ScaleLinear<number, number>;
