@@ -8,7 +8,8 @@ import * as _ from 'lodash';
 
 const DEFAULT_BAR_OPTIONS: BarOptions = {
   renderBarLabels: false,
-  stacked: false
+  stacked: false,
+  matching: false
 }
 
 export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
@@ -33,20 +34,32 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     // container for panning
     this._metricsContainer = clipContatiner
       .append('g')
-      .attr('class', ' metrics-rect')
+      .attr('class', ' metrics-rect');
 
-    const zippedData = this.zippedDataForRender;
-    this._metricsContainer.selectAll('.rects-container')
-      .data(zippedData)
+    if(this._options.matching === false || this.seriesUniqKeys.length === 0) {
+      const zippedData = this.getZippedDataForRender(this.visibleSeries);
+      this.renderSerie(zippedData);
+      return;
+    }
+    const matchedSeries = this.seriesForMatching.map((series: BarTimeSerie[], idx: number) => {
+      return this.getZippedDataForRender(series);
+    });
+    const concatedSeries = this.mergeMacthedSeriesAndSort(matchedSeries);
+    this.renderSerie(concatedSeries);
+  }
+
+  renderSerie(data: any): void {
+    this._metricsContainer.selectAll(`.rects-container`)
+      .data(data)
       .enter().append('g')
       .attr('class', 'rects-container')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .each((d: { key: number, values: number[] }, i: number, nodes: any) => {
+      .each((d: { key: number, values: number[], colors: string []}, i: number, nodes: any) => {
         const container = d3.select(nodes[i]);
         container.selectAll('rect')
         .data(d.values)
         .enter().append('rect')
-        .style('fill', (val, i) => this.getSerieColor(i))
+        .style('fill', (val, i) => d.colors[i])
         .attr('x', (val: number, idx: number) => {
           return this.getBarPositionX(d.key, idx);
         })
@@ -61,16 +74,53 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     // TODO: render bar labels
   }
 
-  get zippedDataForRender(): { key: number, values: number[] }[] {
+  mergeMacthedSeriesAndSort(matchedSeries: any[]) {
+    // TODO: refactor
+    if(matchedSeries.length === 0) {
+      throw new Error('Cant mergeMacthedSeriesAndSort');
+    }
+    if(matchedSeries.length === 1) {
+      return matchedSeries[0];
+    }
+    let unionSeries = _.clone(matchedSeries[0]);
+    for(let i = 1; i < matchedSeries.length; i++){
+      unionSeries = [...unionSeries, ...matchedSeries[i]];
+    }
+    const sortedSeries = _.sortBy(unionSeries, ['key']);
+    return sortedSeries;
+  }
+
+  get seriesUniqKeys(): string[] {
     if(this.visibleSeries.length === 0) {
+      return [];
+    }
+    const keys = this.visibleSeries.map(serie => serie.matchedKey);
+    const uniqKeys = _.uniq(keys);
+    const filteredKeys = _.filter(uniqKeys, key => key !== undefined);
+    return filteredKeys;
+  }
+
+  get seriesForMatching(): BarTimeSerie[][] {
+    if(this.seriesUniqKeys.length === 0) {
+      return [this.visibleSeries];
+    }
+    const seriesList = this.seriesUniqKeys.map(key => {
+      const seriesWithKey = _.filter(this.visibleSeries, serie => serie.matchedKey === key);
+      return seriesWithKey;
+    });
+    return seriesList;
+  }
+
+  getZippedDataForRender(series: BarTimeSerie[]): { key: number, values: number[], colors: string[] }[] {
+    if(series.length === 0) {
       throw new Error('There is no visible series');
     }
-  
-    const keysColumn = _.map(this.visibleSeries[0].datapoints, row => row[1]);
-    const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+    const keysColumn = _.map(series[0].datapoints, row => row[1]);
+    const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
     const zippedValuesColumn = _.zip(...valuesColumns);
+    const colors = _.map(series, serie => this.getBarColor(serie));
     const zippedData = _.zip(keysColumn, zippedValuesColumn);
-    const data = _.map(zippedData, row => { return { key: row[0], values: row[1] } });
+    const data = _.map(zippedData, row => { return { key: row[0], values: row[1], colors } });
     return data;
   }
 
@@ -88,6 +138,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   onMouseMove(): void {
+    // TODO: mouse move work bad with matching
     const event = this._d3.mouse(this._chartContainer.node());
     const eventX = event[0];
     if(this.isOutOfChart() === true) {
@@ -139,6 +190,13 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       });
     }
     return series;
+  }
+
+  getBarColor(serie: any) {
+    if(serie.color === undefined) {
+      return this.getSerieColor(0);
+    }
+    return serie.color;
   }
 
   onMouseOver(): void {
@@ -237,9 +295,18 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     }
     let maxValue: number;
     if(this._options.stacked === true) {
-      const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
-      const zippedValuesColumn = _.zip(...valuesColumns);
-      maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row))); 
+      if(this._options.matching === true && this.seriesUniqKeys.length > 0) {
+        const maxValues = this.seriesForMatching.map(series => {
+          const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
+          const zippedValuesColumn = _.zip(...valuesColumns);
+          return maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row)));
+        });
+        return _.max(maxValues);
+      } else {
+        const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+        const zippedValuesColumn = _.zip(...valuesColumns);
+        maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row))); 
+      }
     } else {
       maxValue = _.max(
         this.visibleSeries.map(

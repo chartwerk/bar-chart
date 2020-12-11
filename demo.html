@@ -13,8 +13,10 @@
       var pod = new ChartwerkBarChart(
         document.getElementById('chart'),
         [
-          { target: 'test', datapoints: [[100, 100], [200, 200], [100, 300]] },
-          { target: 'test2', datapoints: [[100, 100], [200, 200]], visible: true }
+          { target: 'test11', datapoints: [[150, 100], [200, 110], [100, 300]], matchedKey: 'm-1', color: 'red' },
+          { target: 'test12', datapoints: [[100, 100], [200, 200], [100, 300]], matchedKey: 'm-1', color: 'green' },
+          { target: 'test21', datapoints: [[100, 130], [260, 230], [150, 330]], matchedKey: 'm-2', color: 'yellow'},
+          { target: 'test22', datapoints: [[100, 130], [270, 230], [100, 330]], matchedKey: 'm-2', color: 'blue' },
         ],
         {
           usePanning: true,
@@ -22,9 +24,10 @@
             x: { format: 'numeric', invert: false },
             y: { invert: false }
           },
-          stacked: false,
+          stacked: true,
+          matching: true,
           zoom: { orientation: 'horizontal' },
-          maxBarWidth: 50
+          maxBarWidth: 20
         }
       );
       pod.render();
