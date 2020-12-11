@@ -5,14 +5,20 @@ export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOp
     _metricsContainer: any;
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     _renderMetrics(): void;
-    get zippedDataForRender(): {
+    renderSerie(data: any): void;
+    mergeMacthedSeriesAndSort(matchedSeries: any[]): any;
+    get seriesUniqKeys(): string[];
+    get seriesForMatching(): BarTimeSerie[][];
+    getZippedDataForRender(series: BarTimeSerie[]): {
         key: number;
         values: number[];
+        colors: string[];
     }[];
     renderSharedCrosshair(timestamp: number): void;
     hideSharedCrosshair(): void;
     onMouseMove(): void;
     getSeriesPointFromMousePosition(eventX: number): any[] | undefined;
+    getBarColor(serie: any): any;
     onMouseOver(): void;
     onMouseOut(): void;
     contextMenu(): void;
