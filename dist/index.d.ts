@@ -1,10 +1,10 @@
-import { ChartwerkBase, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/base';
+import { ChartwerkPod, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
 import { BarTimeSerie, BarOptions } from './types';
 import * as d3 from 'd3';
-export declare class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
-    _metricsContainer: any;
+export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
+    metricsContainer: any;
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
-    _renderMetrics(): void;
+    protected renderMetrics(): void;
     renderSerie(data: any): void;
     mergeMacthedSeriesAndSort(matchedSeries: any[]): any;
     get seriesUniqKeys(): string[];
@@ -65,6 +65,7 @@ export declare const VueChartwerkBarChartObject: {
             mouseOut(): void;
             onLegendClick(idx: any): void;
             panningEnd(range: any): void;
+            panning(range: any): void;
             contextMenu(evt: any): void;
         };
     }[];

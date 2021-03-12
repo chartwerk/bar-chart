@@ -1,4 +1,4 @@
-import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/base';
+import { ChartwerkPod, VueChartwerkPodMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
 
 import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
 
@@ -12,31 +12,31 @@ const DEFAULT_BAR_OPTIONS: BarOptions = {
   matching: false
 }
 
-export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
-  _metricsContainer: any;
+export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
+  metricsContainer: any;
 
   constructor(el: HTMLElement, _series: BarTimeSerie[] = [], _options: BarOptions = {}) {
     super(d3, el, _series, _options);
-    _.defaults(this._options, DEFAULT_BAR_OPTIONS);
+    _.defaults(this.options, DEFAULT_BAR_OPTIONS);
   }
 
-  _renderMetrics(): void {
-    if(this._series.length === 0 || this._series[0].datapoints.length === 0) {
-      this._renderNoDataPointsMessage();
+  protected renderMetrics(): void {
+    if(this.series.length === 0 || this.series[0].datapoints.length === 0) {
+      this.renderNoDataPointsMessage();
       return;
     }
 
     // container for clip path
-    const clipContatiner = this._chartContainer
+    const clipContatiner = this.chartContainer
       .append('g')
       .attr('clip-path', `url(#${this.rectClipId})`)
       .attr('class', 'metrics-container');
     // container for panning
-    this._metricsContainer = clipContatiner
+    this.metricsContainer = clipContatiner
       .append('g')
       .attr('class', ' metrics-rect');
 
-    if(this._options.matching === false || this.seriesUniqKeys.length === 0) {
+    if(this.options.matching === false || this.seriesUniqKeys.length === 0) {
       const zippedData = this.getZippedDataForRender(this.visibleSeries);
       this.renderSerie(zippedData);
       return;
@@ -49,7 +49,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   renderSerie(data: any): void {
-    this._metricsContainer.selectAll(`.rects-container`)
+    this.metricsContainer.selectAll(`.rects-container`)
       .data(data)
       .enter().append('g')
       .attr('class', 'rects-container')
@@ -125,36 +125,36 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   public renderSharedCrosshair(timestamp: number): void {
-    this._crosshair.style('display', null);
+    this.crosshair.style('display', null);
 
     const x = this.xScale(timestamp);
-    this._crosshair.select('#crosshair-line-x')
+    this.crosshair.select('#crosshair-line-x')
       .attr('x1', x)
       .attr('x2', x);
   }
 
   public hideSharedCrosshair(): void {
-    this._crosshair.style('display', 'none');
+    this.crosshair.style('display', 'none');
   }
 
   onMouseMove(): void {
     // TODO: mouse move work bad with matching
-    const event = this._d3.mouse(this._chartContainer.node());
+    const event = this.d3.mouse(this.chartContainer.node());
     const eventX = event[0];
     if(this.isOutOfChart() === true) {
-      this._crosshair.style('display', 'none');
+      this.crosshair.style('display', 'none');
       return;
     }
-    this._crosshair.select('#crosshair-line-x')
+    this.crosshair.select('#crosshair-line-x')
       .attr('x1', eventX)
       .attr('x2', eventX);
 
     const series = this.getSeriesPointFromMousePosition(eventX);
 
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseMove !== undefined) {
-      this._options.eventsCallbacks.mouseMove({
-        x: this._d3.event.pageX,
-        y: this._d3.event.pageY,
+    if(this.options.eventsCallbacks !== undefined && this.options.eventsCallbacks.mouseMove !== undefined) {
+      this.options.eventsCallbacks.mouseMove({
+        x: this.d3.event.pageX,
+        y: this.d3.event.pageY,
         time: this.xScale.invert(eventX),
         series,
         chartX: eventX,
@@ -167,26 +167,26 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   // TODO: not any[]
   getSeriesPointFromMousePosition(eventX: number): any[] | undefined {
-    if(this._series === undefined || this._series.length === 0) {
+    if(this.series === undefined || this.series.length === 0) {
       return undefined;
     }
 
-    const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
+    const bisectDate = this.d3.bisector((d: [number, number]) => d[1]).left;
     const mouseDate = this.xScale.invert(eventX);
 
-    let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
+    let idx = bisectDate(this.series[0].datapoints, mouseDate) - 1;
 
     const series: any[] = [];
-    for(let i = 0; i < this._series.length; i++) {
-      if(this._series[i].visible === false || this._series[i].datapoints.length < idx + 1) {
+    for(let i = 0; i < this.series.length; i++) {
+      if(this.series[i].visible === false || this.series[i].datapoints.length < idx + 1) {
         continue;
       }
 
       series.push({
-        value: this._series[i].datapoints[idx][0],
-        xval: this._series[i].datapoints[idx][1],
+        value: this.series[i].datapoints[idx][0],
+        xval: this.series[i].datapoints[idx][1],
         color: this.getSerieColor(i),
-        label: this._series[i].alias || this._series[i].target
+        label: this.series[i].alias || this.series[i].target
       });
     }
     return series;
@@ -200,31 +200,31 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   onMouseOver(): void {
-    this._crosshair.style('display', null);
-    this._crosshair.raise();
+    this.crosshair.style('display', null);
+    this.crosshair.raise();
   }
 
   onMouseOut(): void {
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseOut !== undefined) {
-      this._options.eventsCallbacks.mouseOut();
+    if(this.options.eventsCallbacks !== undefined && this.options.eventsCallbacks.mouseOut !== undefined) {
+      this.options.eventsCallbacks.mouseOut();
     } else {
       console.log('mouse out, but there is no callback');
     }
-    this._crosshair.style('display', 'none');
+    this.crosshair.style('display', 'none');
   }
 
   contextMenu(): void {
     // maybe it is not the best name, but i took it from d3.
-    this._d3.event.preventDefault(); // do not open browser's context menu.
+    this.d3.event.preventDefault(); // do not open browser's context menu.
 
-    const event = this._d3.mouse(this._chartContainer.node());
+    const event = this.d3.mouse(this.chartContainer.node());
     const eventX = event[0];
     const series = this.getSeriesPointFromMousePosition(eventX);
 
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.contextMenu !== undefined) {
-      this._options.eventsCallbacks.contextMenu({
-        x: this._d3.event.pageX,
-        y: this._d3.event.pageY,
+    if(this.options.eventsCallbacks !== undefined && this.options.eventsCallbacks.contextMenu !== undefined) {
+      this.options.eventsCallbacks.contextMenu({
+        x: this.d3.event.pageX,
+        y: this.d3.event.pageY,
         time: this.xScale.invert(eventX),
         series,
         chartX: eventX
@@ -236,14 +236,14 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   get barWidth(): number {
     // TODO: here we use first value + timeInterval as bar width. It is not a good idea
-    const xAxisStartValue = _.first(this._series[0].datapoints)[1];
+    const xAxisStartValue = _.first(this.series[0].datapoints)[1];
     let width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
-    if(this._options.maxBarWidth !== undefined) {
+    if(this.options.maxBarWidth !== undefined) {
       // maxBarWidth now has axis-x dimension
-      width = this.xScale(this.minValueX + this._options.maxBarWidth);
+      width = this.xScale(this.minValueX + this.options.maxBarWidth);
     }
     let rectColumns = this.visibleSeries.length;
-    if(this._options.stacked === true) {
+    if(this.options.stacked === true) {
       rectColumns = 1;
     }
     return width / rectColumns;
@@ -258,7 +258,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   getBarPositionX(key: number, idx: number): number {
     let xPosition: number = this.xScale(key);
-    if(this._options.stacked === false) {
+    if(this.options.stacked === false) {
       xPosition += idx * this.barWidth;
     }
     return xPosition;
@@ -266,7 +266,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   getBarPositionY(val: number, idx: number, values: number[]): number {
     let yPosition: number = this.yScale(Math.max(val, 0));
-    if(this._options.stacked === true) {
+    if(this.options.stacked === true) {
       const previousBarsHeight = _.sum(
         _.map(_.range(idx), i => this.getBarHeight(values[i]))
       );
@@ -280,22 +280,22 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       this.minValue === undefined ||
       this.maxValue === undefined
     ) {
-      return this._d3.scaleLinear()
+      return this.d3.scaleLinear()
         .domain([1, 0])
         .range([0, this.height]);
     }
-    return this._d3.scaleLinear()
+    return this.d3.scaleLinear()
       .domain([this.maxValue, Math.min(this.minValue, 0)])
       .range([0, this.height]);
   }
 
   get maxValue(): number | undefined {
-    if(this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) {
+    if(this.series === undefined || this.series.length === 0 || this.series[0].datapoints.length === 0) {
       return undefined;
     }
     let maxValue: number;
-    if(this._options.stacked === true) {
-      if(this._options.matching === true && this.seriesUniqKeys.length > 0) {
+    if(this.options.stacked === true) {
+      if(this.options.matching === true && this.seriesUniqKeys.length > 0) {
         const maxValues = this.seriesForMatching.map(series => {
           const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
           const zippedValuesColumn = _.zip(...valuesColumns);
@@ -318,8 +318,8 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
   }
 
   get xScale(): d3.ScaleLinear<number, number> {
-    const domain = this._state.xValueRange || [this.minValueX, this.maxValueX];
-    return this._d3.scaleLinear()
+    const domain = this.state.xValueRange || [this.minValueX, this.maxValueX];
+    return this.d3.scaleLinear()
       .domain([domain[0], domain[1] + this.timeInterval / 2])
       .range([0, this.width]);
   }
@@ -337,10 +337,10 @@ export const VueChartwerkBarChartObject = {
       }
     )
   },
-  mixins: [VueChartwerkBaseMixin],
+  mixins: [VueChartwerkPodMixin],
   methods: {
     render() {
-      const pod = new ChartwerkBarChart(document.getElementById(this.id), this.series, this.options);
+      const pod = new ChartwerkBarPod(document.getElementById(this.id), this.series, this.options);
       pod.render();
     }
   }
