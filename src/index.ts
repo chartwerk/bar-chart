@@ -138,6 +138,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   }
 
   onMouseMove(): void {
+    console.log('mouse move');
     // TODO: mouse move work bad with matching
     const event = this.d3.mouse(this.chartContainer.node());
     const eventX = event[0];
@@ -185,7 +186,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       series.push({
         value: this.series[i].datapoints[idx][0],
         xval: this.series[i].datapoints[idx][1],
-        color: this.getSerieColor(i),
+        color: this.getBarColor(this.series[i]),
         label: this.series[i].alias || this.series[i].target
       });
     }
@@ -193,8 +194,11 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   }
 
   getBarColor(serie: any) {
-    if(serie.color === undefined) {
+    if(serie.color === undefined && serie.colorFormatter === undefined) {
       return this.getSerieColor(0);
+    }
+    if(serie.colorFormatter !== undefined) {
+      return serie.colorFormatter(serie);
     }
     return serie.color;
   }
@@ -292,6 +296,9 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   get maxValue(): number | undefined {
     if(this.series === undefined || this.series.length === 0 || this.series[0].datapoints.length === 0) {
       return undefined;
+    }
+    if(this.options.axis.y !== undefined && this.options.axis.y.range !== undefined) {
+      return _.max(this.options.axis.y.range);
     }
     let maxValue: number;
     if(this.options.stacked === true) {
