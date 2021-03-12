@@ -26,15 +26,15 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       return;
     }
 
-    // container for clip path
-    const clipContatiner = this.chartContainer
-      .append('g')
-      .attr('clip-path', `url(#${this.rectClipId})`)
-      .attr('class', 'metrics-container');
-    // container for panning
-    this.metricsContainer = clipContatiner
-      .append('g')
-      .attr('class', ' metrics-rect');
+    // // container for clip path
+    // const clipContatiner = this.chartContainer
+    //   .append('g')
+    //   .attr('clip-path', `url(#${this.rectClipId})`)
+    //   .attr('class', 'metrics-container');
+    // // container for panning
+    // this.metricsContainer = clipContatiner
+    //   .append('g')
+    //   .attr('class', ' metrics-rect');
 
     if(this.options.matching === false || this.seriesUniqKeys.length === 0) {
       const zippedData = this.getZippedDataForRender(this.visibleSeries);
@@ -49,7 +49,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   }
 
   renderSerie(data: any): void {
-    this.metricsContainer.selectAll(`.rects-container`)
+    this.chartContainer.selectAll(null)
       .data(data)
       .enter().append('g')
       .attr('class', 'rects-container')

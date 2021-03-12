@@ -1,6 +1,7 @@
 import { TimeSerie, Options } from '@chartwerk/core';
 export declare type BarSerieParams = {
     matchedKey: string;
+    colorFormatter: (serie: BarTimeSerie) => string;
 };
 export declare type BarTimeSerie = TimeSerie & Partial<BarSerieParams>;
 export declare type BarOptionsParams = {
