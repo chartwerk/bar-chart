@@ -26,15 +26,15 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       return;
     }
 
-    // // container for clip path
-    // const clipContatiner = this.chartContainer
-    //   .append('g')
-    //   .attr('clip-path', `url(#${this.rectClipId})`)
-    //   .attr('class', 'metrics-container');
-    // // container for panning
-    // this.metricsContainer = clipContatiner
-    //   .append('g')
-    //   .attr('class', ' metrics-rect');
+    // container for clip path
+    const clipContatiner = this.chartContainer
+      .append('g')
+      .attr('clip-path', `url(#${this.rectClipId})`)
+      .attr('class', 'metrics-container');
+    // container for panning
+    this.metricsContainer = clipContatiner
+      .append('g')
+      .attr('class', ' metrics-rect');
 
     if(this.options.matching === false || this.seriesUniqKeys.length === 0) {
       const zippedData = this.getZippedDataForRender(this.visibleSeries);
@@ -49,17 +49,31 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   }
 
   renderSerie(data: any): void {
-    this.chartContainer.selectAll(null)
+    this.metricsContainer.selectAll(`.rects-container`)
       .data(data)
       .enter().append('g')
       .attr('class', 'rects-container')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .each((d: { key: number, values: number[], colors: string []}, i: number, nodes: any) => {
+      .each((d: { key: number, values: number[], supValues: (null | number)[], colors: string []}, i: number, nodes: any) => {
         const container = d3.select(nodes[i]);
         container.selectAll('rect')
         .data(d.values)
         .enter().append('rect')
-        .style('fill', (val, i) => d.colors[i])
+        .style('fill', (val, i) => {
+          console.log('fill', d, val, i);
+          return d.colors[i];
+        })
+        .attr('opacity', (val, i) => {
+          if(
+            this.options.opacityFormatter === undefined ||
+            d.supValues === undefined ||
+            d.supValues.length === 0 ||
+            d.supValues[0] === null
+          ) {
+            return 1;
+          }
+          return this.options.opacityFormatter(d.supValues[0]);
+        })
         .attr('x', (val: number, idx: number) => {
           return this.getBarPositionX(d.key, idx);
         })
@@ -111,16 +125,19 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     return seriesList;
   }
 
-  getZippedDataForRender(series: BarTimeSerie[]): { key: number, values: number[], colors: string[] }[] {
+  getZippedDataForRender(series: BarTimeSerie[]): { key: number, values: number[], supValues: (null | number)[], colors: string[] }[] {
     if(series.length === 0) {
       throw new Error('There is no visible series');
     }
     const keysColumn = _.map(series[0].datapoints, row => row[1]);
     const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
+    // @ts-ignore
+    const supValuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[2] !== undefined ? row[2] : null));
+    const zippedSupValuesColumn = _.zip(...supValuesColumns);
     const zippedValuesColumn = _.zip(...valuesColumns);
     const colors = _.map(series, serie => this.getBarColor(serie));
-    const zippedData = _.zip(keysColumn, zippedValuesColumn);
-    const data = _.map(zippedData, row => { return { key: row[0], values: row[1], colors } });
+    const zippedData = _.zip(keysColumn, zippedValuesColumn, zippedSupValuesColumn);
+    const data = _.map(zippedData, row => { return { key: row[0], values: row[1], supValues: row[2], colors } });
     return data;
   }
 
@@ -138,7 +155,6 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   }
 
   onMouseMove(): void {
-    console.log('mouse move');
     // TODO: mouse move work bad with matching
     const event = this.d3.mouse(this.chartContainer.node());
     const eventX = event[0];
@@ -194,11 +210,8 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
   }
 
   getBarColor(serie: any) {
-    if(serie.color === undefined && serie.colorFormatter === undefined) {
+    if(serie.color === undefined) {
       return this.getSerieColor(0);
-    }
-    if(serie.colorFormatter !== undefined) {
-      return serie.colorFormatter(serie);
     }
     return serie.color;
   }

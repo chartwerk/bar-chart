@@ -10,5 +10,6 @@ export type BarOptionsParams = {
   stacked: boolean;
   maxBarWidth: number;
   matching: boolean;
+  opacityFormatter: (value: number) => number;
 }
 export type BarOptions = Options & Partial<BarOptionsParams>;

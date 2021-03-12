@@ -19,14 +19,13 @@
           { target: 'test22', datapoints: [[100, 130], [270, 230], [100, 330]], matchedKey: 'm-2', color: 'blue' },
         ],
         {
-          usePanning: true,
+          usePanning: false,
           axis: {
             x: { format: 'numeric', invert: false },
             y: { invert: false, range: [0, 300] }
           },
           stacked: true,
           matching: true,
-          zoom: { orientation: 'horizontal' },
           maxBarWidth: 20
         }
       );
