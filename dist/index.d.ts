@@ -12,6 +12,7 @@ export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptio
     getZippedDataForRender(series: BarTimeSerie[]): {
         key: number;
         values: number[];
+        supValues: (null | number)[];
         colors: string[];
     }[];
     renderSharedCrosshair(timestamp: number): void;
@@ -28,7 +29,7 @@ export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptio
     getBarPositionY(val: number, idx: number, values: number[]): number;
     get yScale(): d3.ScaleLinear<number, number>;
     get maxValue(): number | undefined;
-    get xScale(): d3.ScaleLinear<number, number>;
+    get xAxisTicksFormat(): any;
 }
 export declare const VueChartwerkBarChartObject: {
     render(createElement: any): any;

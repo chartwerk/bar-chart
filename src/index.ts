@@ -59,10 +59,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
         container.selectAll('rect')
         .data(d.values)
         .enter().append('rect')
-        .style('fill', (val, i) => {
-          console.log('fill', d, val, i);
-          return d.colors[i];
-        })
+        .style('fill', (val, i) => d.colors[i])
         .attr('opacity', (val, i) => {
           if(
             this.options.opacityFormatter === undefined ||
@@ -337,11 +334,24 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     return Math.max(maxValue, 0);
   }
 
-  get xScale(): d3.ScaleLinear<number, number> {
-    const domain = this.state.xValueRange || [this.minValueX, this.maxValueX];
-    return this.d3.scaleLinear()
-      .domain([domain[0], domain[1] + this.timeInterval / 2])
-      .range([0, this.width]);
+  get xAxisTicksFormat(): any {
+    switch(this.options.axis.x.format) {
+      case AxisFormat.TIME:
+        if(this.options.tickFormat !== undefined && this.options.tickFormat.xAxis !== undefined) {
+          return this.d3.timeFormat(this.options.tickFormat.xAxis);
+        }
+        return this.d3.timeFormat('%m/%d %H:%M');
+      case AxisFormat.NUMERIC:
+        if(this.options.tickFormat !== undefined && this.options.tickFormat.xAxis !== undefined) {
+          // @ts-ignore
+          return (d, i) => this.options.tickFormat.xAxis(d, i);
+        }
+        return (d) => d;
+      case AxisFormat.STRING:
+        // TODO: add string/symbol format
+      default:
+        throw new Error(`Unknown time format for x-axis: ${this.options.axis.x.format}`);
+    }
   }
 }
 
