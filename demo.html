@@ -10,13 +10,24 @@
     <div id="chart" style="width: 500px; height: 500px;"></div>
 
     <script type="text/javascript">
-      var pod = new ChartwerkBarChart(
+      var pod = new ChartwerkBarPod(
         document.getElementById('chart'),
         [
-          { target: 'test', datapoints: [[100, 100], [200, 200], [100, 300]] },
-          { target: 'test2', datapoints: [[120, 100], [80, 200], [150, 300]] }
+          { target: 'test11', datapoints: [[15, 100], [20, 110], [10, 300]], matchedKey: 'm-1', color: 'red' },
+          { target: 'test12', datapoints: [[10, 100], [20, 200], [10, 300]], matchedKey: 'm-1', color: 'green' },
+          { target: 'test21', datapoints: [[10, 130], [26, 230], [15, 330]], matchedKey: 'm-2', color: 'yellow'},
+          { target: 'test22', datapoints: [[10, 130], [27, 230], [10, 330]], matchedKey: 'm-2', color: 'blue' },
         ],
-        { usePanning: false, axis: { x: { format: 'numeric'} }, stacked: true }
+        {
+          usePanning: false,
+          axis: {
+            x: { format: 'custom', invert: false, valueFormatter: (value) => { return 'L' + value; } },
+            y: { invert: false, range: [0, 30], valueFormatter: (value) => { return value + '%'; } }
+          },
+          stacked: true,
+          matching: true,
+          maxBarWidth: 20
+        }
       );
       pod.render();
     </script>

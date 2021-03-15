@@ -1,53 +1,66 @@
-import { ChartwerkBase, VueChartwerkBaseMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/base';
+import { ChartwerkPod, VueChartwerkPodMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
 
-import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
+import { BarTimeSerie, BarOptions, RowValues } from './types';
 
 import * as d3 from 'd3';
 import * as _ from 'lodash';
 
 
-const DEFAULT_BAR_OPTIONS: BarOptionsParams = {
+const DEFAULT_BAR_OPTIONS: BarOptions = {
   renderBarLabels: false,
-  stacked: false
+  stacked: false,
+  matching: false
 }
 
-export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
-  _metricsContainer: any;
+export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
+  metricsContainer: any;
 
   constructor(el: HTMLElement, _series: BarTimeSerie[] = [], _options: BarOptions = {}) {
     super(d3, el, _series, _options);
-    _.defaults(this._options, DEFAULT_BAR_OPTIONS);
+    _.defaults(this.options, DEFAULT_BAR_OPTIONS);
   }
 
-  _renderMetrics(): void {
-    if(this._series.length === 0 || this._series[0].datapoints.length === 0) {
-      this._renderNoDataPointsMessage();
+  protected renderMetrics(): void {
+    if(this.series.length === 0 || this.series[0].datapoints.length === 0) {
+      this.renderNoDataPointsMessage();
       return;
     }
 
     // container for clip path
-    const clipContatiner = this._chartContainer
+    const clipContatiner = this.chartContainer
       .append('g')
       .attr('clip-path', `url(#${this.rectClipId})`)
       .attr('class', 'metrics-container');
     // container for panning
-    this._metricsContainer = clipContatiner
+    this.metricsContainer = clipContatiner
       .append('g')
-      .attr('class', ' metrics-rect')
+      .attr('class', ' metrics-rect');
 
-    const zippedData = this.zippedDataForRender;
-    this._metricsContainer.selectAll('.rects-container')
-      .data(zippedData)
+    if(this.options.matching === false || this.seriesUniqKeys.length === 0) {
+      const zippedData = this.getZippedDataForRender(this.visibleSeries);
+      this.renderSerie(zippedData);
+      return;
+    }
+    const matchedSeries = this.seriesForMatching.map((series: BarTimeSerie[], idx: number) => {
+      return this.getZippedDataForRender(series);
+    });
+    const concatedSeries = this.mergeMacthedSeriesAndSort(matchedSeries);
+    this.renderSerie(concatedSeries);
+  }
+
+  renderSerie(data: any): void {
+    this.metricsContainer.selectAll(`.rects-container`)
+      .data(data)
       .enter().append('g')
       .attr('class', 'rects-container')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .each((d: { key: number, values: number[] }, i: number, nodes: any) => {
+      .each((d: RowValues, i: number, nodes: any) => {
         const container = d3.select(nodes[i]);
         container.selectAll('rect')
         .data(d.values)
         .enter().append('rect')
-        .style('fill', (val, i) => this.getSerieColor(i))
-        .style('pointer-events', 'none')
+        .style('fill', (val, i) => d.colors[i])
+        .attr('opacity', () => this.getBarOpacity(d))
         .attr('x', (val: number, idx: number) => {
           return this.getBarPositionX(d.key, idx);
         })
@@ -55,75 +68,104 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
           return this.getBarPositionY(val, idx, d.values);
         })
         .attr('width', this.barWidth)
-        .attr('height', (val: number) => this.getBarHeight(val));
+        .attr('height', (val: number) => this.getBarHeight(val))
+        .on('contextmenu', this.contextMenu.bind(this));
       });
 
     // TODO: render bar labels
   }
 
-  get zippedDataForRender(): { key: number, values: number[] }[] {
+  getBarOpacity(rowValues: RowValues): number {
+    if(this.options.opacityFormatter === undefined) {
+      return 1;
+    }
+    return this.options.opacityFormatter(rowValues);
+  }
+
+  mergeMacthedSeriesAndSort(matchedSeries: any[]) {
+    // TODO: refactor
+    if(matchedSeries.length === 0) {
+      throw new Error('Cant mergeMacthedSeriesAndSort');
+    }
+    if(matchedSeries.length === 1) {
+      return matchedSeries[0];
+    }
+    let unionSeries = _.clone(matchedSeries[0]);
+    for(let i = 1; i < matchedSeries.length; i++){
+      unionSeries = [...unionSeries, ...matchedSeries[i]];
+    }
+    const sortedSeries = _.sortBy(unionSeries, ['key']);
+    return sortedSeries;
+  }
+
+  get seriesUniqKeys(): string[] {
     if(this.visibleSeries.length === 0) {
+      return [];
+    }
+    const keys = this.visibleSeries.map(serie => serie.matchedKey);
+    const uniqKeys = _.uniq(keys);
+    const filteredKeys = _.filter(uniqKeys, key => key !== undefined);
+    return filteredKeys;
+  }
+
+  get seriesForMatching(): BarTimeSerie[][] {
+    if(this.seriesUniqKeys.length === 0) {
+      return [this.visibleSeries];
+    }
+    const seriesList = this.seriesUniqKeys.map(key => {
+      const seriesWithKey = _.filter(this.visibleSeries, serie => serie.matchedKey === key);
+      return seriesWithKey;
+    });
+    return seriesList;
+  }
+
+  getZippedDataForRender(series: BarTimeSerie[]): RowValues[] {
+    if(series.length === 0) {
       throw new Error('There is no visible series');
     }
-  
-    const keysColumn = _.map(this.visibleSeries[0].datapoints, row => row[1]);
-    const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+    const keysColumn = _.map(series[0].datapoints, row => row[1]);
+    const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
+    // @ts-ignore
+    const additionalValuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[2] !== undefined ? row[2] : null));
+    const zippedAdditionalValuesColumn = _.zip(...additionalValuesColumns);
     const zippedValuesColumn = _.zip(...valuesColumns);
-    const zippedData = _.zip(keysColumn, zippedValuesColumn);
-    const data = _.map(zippedData, row => { return { key: row[0], values: row[1] } });
+    const colors = _.map(series, serie => this.getBarColor(serie));
+    const zippedData = _.zip(keysColumn, zippedValuesColumn, zippedAdditionalValuesColumn);
+    const data = _.map(zippedData, row => { return { key: row[0], values: row[1], additionalValues: row[2], colors } });
     return data;
   }
 
   public renderSharedCrosshair(timestamp: number): void {
-    this._crosshair.style('display', null);
+    this.crosshair.style('display', null);
 
     const x = this.xScale(timestamp);
-    this._crosshair.select('#crosshair-line-x')
+    this.crosshair.select('#crosshair-line-x')
       .attr('x1', x)
       .attr('x2', x);
   }
 
   public hideSharedCrosshair(): void {
-    this._crosshair.style('display', 'none');
+    this.crosshair.style('display', 'none');
   }
 
   onMouseMove(): void {
-    const event = this._d3.mouse(this._chartContainer.node());
+    // TODO: mouse move work bad with matching
+    const event = this.d3.mouse(this.chartContainer.node());
     const eventX = event[0];
     if(this.isOutOfChart() === true) {
-      this._crosshair.style('display', 'none');
+      this.crosshair.style('display', 'none');
       return;
     }
-    this._crosshair.select('#crosshair-line-x')
+    this.crosshair.select('#crosshair-line-x')
       .attr('x1', eventX)
       .attr('x2', eventX);
 
-    if(this._series === undefined || this._series.length === 0) {
-      return;
-    }
+    const series = this.getSeriesPointFromMousePosition(eventX);
 
-    const bisectDate = this._d3.bisector((d: [number, number]) => d[1]).left;
-    const mouseDate = this.xScale.invert(eventX);
-
-    let idx = bisectDate(this._series[0].datapoints, mouseDate) - 1;
-
-    const series: any[] = [];
-    for(let i = 0; i < this._series.length; i++) {
-      if(this._series[i].visible === false) {
-        continue;
-      }
-
-      series.push({
-        value: this._series[i].datapoints[idx][0],
-        color: this.getSerieColor(i),
-        label: this._series[i].alias || this._series[i].target
-      });
-    }
-
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseMove !== undefined) {
-      this._options.eventsCallbacks.mouseMove({
-        x: this._d3.event.clientX,
-        y: this._d3.event.clientY,
+    if(this.options.eventsCallbacks !== undefined && this.options.eventsCallbacks.mouseMove !== undefined) {
+      this.options.eventsCallbacks.mouseMove({
+        x: this.d3.event.pageX,
+        y: this.d3.event.pageY,
         time: this.xScale.invert(eventX),
         series,
         chartX: eventX,
@@ -134,34 +176,85 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
     }
   }
 
+  // TODO: not any[]
+  getSeriesPointFromMousePosition(eventX: number): any[] | undefined {
+    if(this.series === undefined || this.series.length === 0) {
+      return undefined;
+    }
+
+    const bisectDate = this.d3.bisector((d: [number, number]) => d[1]).left;
+    const mouseDate = this.xScale.invert(eventX);
+
+    let idx = bisectDate(this.series[0].datapoints, mouseDate) - 1;
+
+    const series: any[] = [];
+    for(let i = 0; i < this.series.length; i++) {
+      if(this.series[i].visible === false || this.series[i].datapoints.length < idx + 1) {
+        continue;
+      }
+
+      series.push({
+        value: this.series[i].datapoints[idx][0],
+        xval: this.series[i].datapoints[idx][1],
+        color: this.getBarColor(this.series[i]),
+        label: this.series[i].alias || this.series[i].target
+      });
+    }
+    return series;
+  }
+
+  getBarColor(serie: any) {
+    if(serie.color === undefined) {
+      return this.getSerieColor(0);
+    }
+    return serie.color;
+  }
+
   onMouseOver(): void {
-    this._crosshair.style('display', null);
-    this._crosshair.raise();
+    this.crosshair.style('display', null);
+    this.crosshair.raise();
   }
 
   onMouseOut(): void {
-    if(this._options.eventsCallbacks !== undefined && this._options.eventsCallbacks.mouseOut !== undefined) {
-      this._options.eventsCallbacks.mouseOut();
+    if(this.options.eventsCallbacks !== undefined && this.options.eventsCallbacks.mouseOut !== undefined) {
+      this.options.eventsCallbacks.mouseOut();
     } else {
       console.log('mouse out, but there is no callback');
     }
-    this._crosshair.style('display', 'none');
+    this.crosshair.style('display', 'none');
+  }
+
+  contextMenu(): void {
+    // maybe it is not the best name, but i took it from d3.
+    this.d3.event.preventDefault(); // do not open browser's context menu.
+
+    const event = this.d3.mouse(this.chartContainer.node());
+    const eventX = event[0];
+    const series = this.getSeriesPointFromMousePosition(eventX);
+
+    if(this.options.eventsCallbacks !== undefined && this.options.eventsCallbacks.contextMenu !== undefined) {
+      this.options.eventsCallbacks.contextMenu({
+        x: this.d3.event.pageX,
+        y: this.d3.event.pageY,
+        time: this.xScale.invert(eventX),
+        series,
+        chartX: eventX
+      });
+    } else {
+      console.log('contextmenu, but there is no callback');
+    }
   }
 
   get barWidth(): number {
-    // TODO: Do we need this defaults?
-    if(this._options === undefined) {
-      return 20;
-    }
-    const xAxisStartValue = _.first(this._series[0].datapoints)[1];
-    let width: number;
-    if(this._options.axis.x.format === 'time') {
-      width = this.xScale(new Date(xAxisStartValue + this.timeInterval)) / 2;
-    } else {
-      width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
+    // TODO: here we use first value + timeInterval as bar width. It is not a good idea
+    const xAxisStartValue = _.first(this.series[0].datapoints)[1];
+    let width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
+    if(this.options.maxBarWidth !== undefined) {
+      // maxBarWidth now has axis-x dimension
+      width = this.xScale(this.minValueX + this.options.maxBarWidth);
     }
     let rectColumns = this.visibleSeries.length;
-    if(this._options.stacked === true) {
+    if(this.options.stacked === true) {
       rectColumns = 1;
     }
     return width / rectColumns;
@@ -176,7 +269,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   getBarPositionX(key: number, idx: number): number {
     let xPosition: number = this.xScale(key);
-    if(this._options.stacked === false) {
+    if(this.options.stacked === false) {
       xPosition += idx * this.barWidth;
     }
     return xPosition;
@@ -184,7 +277,7 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
 
   getBarPositionY(val: number, idx: number, values: number[]): number {
     let yPosition: number = this.yScale(Math.max(val, 0));
-    if(this._options.stacked === true) {
+    if(this.options.stacked === true) {
       const previousBarsHeight = _.sum(
         _.map(_.range(idx), i => this.getBarHeight(values[i]))
       );
@@ -198,24 +291,36 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       this.minValue === undefined ||
       this.maxValue === undefined
     ) {
-      return this._d3.scaleLinear()
+      return this.d3.scaleLinear()
         .domain([1, 0])
         .range([0, this.height]);
     }
-    return this._d3.scaleLinear()
+    return this.d3.scaleLinear()
       .domain([this.maxValue, Math.min(this.minValue, 0)])
       .range([0, this.height]);
   }
 
   get maxValue(): number | undefined {
-    if(this._series === undefined || this._series.length === 0 || this._series[0].datapoints.length === 0) {
+    if(this.series === undefined || this.series.length === 0 || this.series[0].datapoints.length === 0) {
       return undefined;
     }
+    if(this.options.axis.y !== undefined && this.options.axis.y.range !== undefined) {
+      return _.max(this.options.axis.y.range);
+    }
     let maxValue: number;
-    if(this._options.stacked === true) {
-      const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
-      const zippedValuesColumn = _.zip(...valuesColumns);
-      maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row))); 
+    if(this.options.stacked === true) {
+      if(this.options.matching === true && this.seriesUniqKeys.length > 0) {
+        const maxValues = this.seriesForMatching.map(series => {
+          const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
+          const zippedValuesColumn = _.zip(...valuesColumns);
+          return maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row)));
+        });
+        return _.max(maxValues);
+      } else {
+        const valuesColumns = _.map(this.visibleSeries, serie => _.map(serie.datapoints, row => row[0]));
+        const zippedValuesColumn = _.zip(...valuesColumns);
+        maxValue = _.max(_.map(zippedValuesColumn, row => _.sum(row))); 
+      }
     } else {
       maxValue = _.max(
         this.visibleSeries.map(
@@ -224,13 +329,6 @@ export class ChartwerkBarChart extends ChartwerkBase<BarTimeSerie, BarOptions> {
       );
     }
     return Math.max(maxValue, 0);
-  }
-
-  get xScale(): d3.ScaleLinear<number, number> {
-    const domain = this._state.xValueRange || [this.minValueX, this.maxValueX];
-    return this._d3.scaleLinear()
-      .domain([domain[0], domain[1] + this.timeInterval / 2])
-      .range([0, this.width]);
   }
 }
 
@@ -246,10 +344,10 @@ export const VueChartwerkBarChartObject = {
       }
     )
   },
-  mixins: [VueChartwerkBaseMixin],
+  mixins: [VueChartwerkPodMixin],
   methods: {
     render() {
-      const pod = new ChartwerkBarChart(document.getElementById(this.id), this.series, this.options);
+      const pod = new ChartwerkBarPod(document.getElementById(this.id), this.series, this.options);
       pod.render();
     }
   }
