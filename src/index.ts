@@ -1,6 +1,6 @@
 import { ChartwerkPod, VueChartwerkPodMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
 
-import { BarTimeSerie, BarOptions, BarOptionsParams } from './types';
+import { BarTimeSerie, BarOptions, rowValues } from './types';
 
 import * as d3 from 'd3';
 import * as _ from 'lodash';
@@ -54,23 +54,13 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       .enter().append('g')
       .attr('class', 'rects-container')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .each((d: { key: number, values: number[], supValues: (null | number)[], colors: string []}, i: number, nodes: any) => {
+      .each((d: rowValues, i: number, nodes: any) => {
         const container = d3.select(nodes[i]);
         container.selectAll('rect')
         .data(d.values)
         .enter().append('rect')
         .style('fill', (val, i) => d.colors[i])
-        .attr('opacity', (val, i) => {
-          if(
-            this.options.opacityFormatter === undefined ||
-            d.supValues === undefined ||
-            d.supValues.length === 0 ||
-            d.supValues[0] === null
-          ) {
-            return 1;
-          }
-          return this.options.opacityFormatter(d.supValues[0]);
-        })
+        .attr('opacity', () => this.getBarOpacity(d))
         .attr('x', (val: number, idx: number) => {
           return this.getBarPositionX(d.key, idx);
         })
@@ -83,6 +73,13 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       });
 
     // TODO: render bar labels
+  }
+
+  getBarOpacity(rowValues: rowValues): number {
+    if(this.options.opacityFormatter === undefined) {
+      return 1;
+    }
+    return this.options.opacityFormatter(rowValues);
   }
 
   mergeMacthedSeriesAndSort(matchedSeries: any[]) {
@@ -332,26 +329,6 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       );
     }
     return Math.max(maxValue, 0);
-  }
-
-  get xAxisTicksFormat(): any {
-    switch(this.options.axis.x.format) {
-      case AxisFormat.TIME:
-        if(this.options.tickFormat !== undefined && this.options.tickFormat.xAxis !== undefined) {
-          return this.d3.timeFormat(this.options.tickFormat.xAxis);
-        }
-        return this.d3.timeFormat('%m/%d %H:%M');
-      case AxisFormat.NUMERIC:
-        if(this.options.tickFormat !== undefined && this.options.tickFormat.xAxis !== undefined) {
-          // @ts-ignore
-          return (d, i) => this.options.tickFormat.xAxis(d, i);
-        }
-        return (d) => d;
-      case AxisFormat.STRING:
-        // TODO: add string/symbol format
-      default:
-        throw new Error(`Unknown time format for x-axis: ${this.options.axis.x.format}`);
-    }
   }
 }
 
