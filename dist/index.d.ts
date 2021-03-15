@@ -1,11 +1,12 @@
 import { ChartwerkPod, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
-import { BarTimeSerie, BarOptions } from './types';
+import { BarTimeSerie, BarOptions, rowValues } from './types';
 import * as d3 from 'd3';
 export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     metricsContainer: any;
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     protected renderMetrics(): void;
     renderSerie(data: any): void;
+    getBarOpacity(rowValues: rowValues): number;
     mergeMacthedSeriesAndSort(matchedSeries: any[]): any;
     get seriesUniqKeys(): string[];
     get seriesForMatching(): BarTimeSerie[][];
@@ -29,7 +30,6 @@ export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptio
     getBarPositionY(val: number, idx: number, values: number[]): number;
     get yScale(): d3.ScaleLinear<number, number>;
     get maxValue(): number | undefined;
-    get xAxisTicksFormat(): any;
 }
 export declare const VueChartwerkBarChartObject: {
     render(createElement: any): any;

@@ -9,6 +9,12 @@ export declare type BarOptionsParams = {
     stacked: boolean;
     maxBarWidth: number;
     matching: boolean;
-    opacityFormatter: (value: number) => number;
+    opacityFormatter: (data: rowValues) => number;
 };
 export declare type BarOptions = Options & Partial<BarOptionsParams>;
+export declare type rowValues = {
+    key: number;
+    values: number[];
+    supValues: (null | number)[];
+    colors: string[];
+};
