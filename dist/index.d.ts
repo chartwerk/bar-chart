@@ -1,21 +1,16 @@
 import { ChartwerkPod, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
-import { BarTimeSerie, BarOptions, rowValues } from './types';
+import { BarTimeSerie, BarOptions, RowValues } from './types';
 import * as d3 from 'd3';
 export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     metricsContainer: any;
     constructor(el: HTMLElement, _series?: BarTimeSerie[], _options?: BarOptions);
     protected renderMetrics(): void;
     renderSerie(data: any): void;
-    getBarOpacity(rowValues: rowValues): number;
+    getBarOpacity(rowValues: RowValues): number;
     mergeMacthedSeriesAndSort(matchedSeries: any[]): any;
     get seriesUniqKeys(): string[];
     get seriesForMatching(): BarTimeSerie[][];
-    getZippedDataForRender(series: BarTimeSerie[]): {
-        key: number;
-        values: number[];
-        supValues: (null | number)[];
-        colors: string[];
-    }[];
+    getZippedDataForRender(series: BarTimeSerie[]): RowValues[];
     renderSharedCrosshair(timestamp: number): void;
     hideSharedCrosshair(): void;
     onMouseMove(): void;

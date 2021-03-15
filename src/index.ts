@@ -1,6 +1,6 @@
 import { ChartwerkPod, VueChartwerkPodMixin, TickOrientation, TimeFormat, AxisFormat } from '@chartwerk/core';
 
-import { BarTimeSerie, BarOptions, rowValues } from './types';
+import { BarTimeSerie, BarOptions, RowValues } from './types';
 
 import * as d3 from 'd3';
 import * as _ from 'lodash';
@@ -54,7 +54,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       .enter().append('g')
       .attr('class', 'rects-container')
       .attr('clip-path', `url(#${this.rectClipId})`)
-      .each((d: rowValues, i: number, nodes: any) => {
+      .each((d: RowValues, i: number, nodes: any) => {
         const container = d3.select(nodes[i]);
         container.selectAll('rect')
         .data(d.values)
@@ -75,7 +75,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     // TODO: render bar labels
   }
 
-  getBarOpacity(rowValues: rowValues): number {
+  getBarOpacity(rowValues: RowValues): number {
     if(this.options.opacityFormatter === undefined) {
       return 1;
     }
@@ -119,19 +119,19 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     return seriesList;
   }
 
-  getZippedDataForRender(series: BarTimeSerie[]): { key: number, values: number[], supValues: (null | number)[], colors: string[] }[] {
+  getZippedDataForRender(series: BarTimeSerie[]): RowValues[] {
     if(series.length === 0) {
       throw new Error('There is no visible series');
     }
     const keysColumn = _.map(series[0].datapoints, row => row[1]);
     const valuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[0]));
     // @ts-ignore
-    const supValuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[2] !== undefined ? row[2] : null));
-    const zippedSupValuesColumn = _.zip(...supValuesColumns);
+    const additionalValuesColumns = _.map(series, serie => _.map(serie.datapoints, row => row[2] !== undefined ? row[2] : null));
+    const zippedAdditionalValuesColumn = _.zip(...additionalValuesColumns);
     const zippedValuesColumn = _.zip(...valuesColumns);
     const colors = _.map(series, serie => this.getBarColor(serie));
-    const zippedData = _.zip(keysColumn, zippedValuesColumn, zippedSupValuesColumn);
-    const data = _.map(zippedData, row => { return { key: row[0], values: row[1], supValues: row[2], colors } });
+    const zippedData = _.zip(keysColumn, zippedValuesColumn, zippedAdditionalValuesColumn);
+    const data = _.map(zippedData, row => { return { key: row[0], values: row[1], additionalValues: row[2], colors } });
     return data;
   }
 
