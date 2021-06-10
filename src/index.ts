@@ -266,7 +266,7 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
       barWidth = Math.max(barWidth, this.options.minBarWidth);
     }
     if(this.options.maxBarWidth !== undefined) {
-      barWidth = Math.min(barWidth, this.options.minBarWidth);
+      barWidth = Math.min(barWidth, this.options.maxBarWidth);
     }
     return barWidth;
   }
