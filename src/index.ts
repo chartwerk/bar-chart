@@ -249,15 +249,26 @@ export class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptions> {
     // TODO: here we use first value + timeInterval as bar width. It is not a good idea
     const xAxisStartValue = _.first(this.series[0].datapoints)[1];
     let width = this.xScale(xAxisStartValue + this.timeInterval) / 2;
-    if(this.options.maxBarWidth !== undefined) {
-      // maxBarWidth now has axis-x dimension
-      width = this.xScale(this.minValueX + this.options.maxBarWidth);
+    if(this.options.barWidth !== undefined) {
+      // barWidth now has axis-x dimension
+      width = this.xScale(this.minValueX + this.options.barWidth);
     }
     let rectColumns = this.visibleSeries.length;
     if(this.options.stacked === true) {
       rectColumns = 1;
     }
-    return width / rectColumns;
+    return this.updateBarWidthWithBorders(width / rectColumns);
+  }
+
+  updateBarWidthWithBorders(width: number): number {
+    let barWidth = width;
+    if(this.options.minBarWidth !== undefined) {
+      barWidth = Math.max(barWidth, this.options.minBarWidth);
+    }
+    if(this.options.maxBarWidth !== undefined) {
+      barWidth = Math.min(barWidth, this.options.minBarWidth);
+    }
+    return barWidth;
   }
 
   getBarHeight(value: number): number {

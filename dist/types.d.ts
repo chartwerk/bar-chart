@@ -7,7 +7,9 @@ export declare type BarTimeSerie = TimeSerie & Partial<BarSerieParams>;
 export declare type BarOptionsParams = {
     renderBarLabels: boolean;
     stacked: boolean;
+    barWidth: number;
     maxBarWidth: number;
+    minBarWidth: number;
     matching: boolean;
     opacityFormatter: (data: RowValues) => number;
 };

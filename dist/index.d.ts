@@ -20,6 +20,7 @@ export declare class ChartwerkBarPod extends ChartwerkPod<BarTimeSerie, BarOptio
     onMouseOut(): void;
     contextMenu(): void;
     get barWidth(): number;
+    updateBarWidthWithBorders(width: number): number;
     getBarHeight(value: number): number;
     getBarPositionX(key: number, idx: number): number;
     getBarPositionY(val: number, idx: number, values: number[]): number;
