@@ -358,8 +358,10 @@ export const VueChartwerkBarChartObject = {
   mixins: [VueChartwerkPodMixin],
   methods: {
     render() {
+      console.time('renderBar');
       const pod = new ChartwerkBarPod(document.getElementById(this.id), this.series, this.options);
       pod.render();
+      console.timeEnd('renderBar');
     }
   }
 };
